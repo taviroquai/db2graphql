@@ -13,6 +13,7 @@ Generates a Graphql schema and resolvers from an existing relational database
 * Only PostgreSQL supported
 * Better database types handling
 * Better database queries optimization
+* Move to TypeScript
 * Add more and improve convenient API methods. Currently, only:
     1. getPage
     1. getFirstOf
