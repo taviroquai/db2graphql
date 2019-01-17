@@ -9,10 +9,11 @@ Generates a Graphql schema and resolvers from an existing relational database
 * Implements a generic Graphql resolver with a basic API for fast CRUD operations
 
 ## Limitations/TODO
-* Create an NPM module
 * Only PostgreSQL supported
 * Better database types handling
 * Better database queries optimization
+* Create tests
+* Create an NPM module
 * Move to TypeScript
 * Add more and improve convenient API methods. Currently, only:
     1. getPage
@@ -41,7 +42,7 @@ const start = async (cb) => {
 start();
 ```
 
-### Use built-in resolver for fast CRUD prototyping
+### Use built-in resolver for fast API prototyping
 ```js
 const PostgreSQL = require('./adapters/postgres');
 const Compiler = require('./graphql/compiler');
