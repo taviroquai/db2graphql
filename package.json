@@ -4,7 +4,7 @@
   "description": "Generate Graphql schema based on existing relational database",
   "main": "index.js",
   "scripts": {
-    "demo-db": "psql -U postgres -f ./migrations/001.sql db2graphql",
+    "demo-db": "sudo psql -h localhost -U postgres -f ./migrations/001.sql db2graphql",
     "start": "node demo",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

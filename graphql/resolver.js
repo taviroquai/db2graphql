@@ -119,11 +119,11 @@ class Resolver {
     let tables = this.dbDriver.getTablesFromSchema();
     for (let i = 0; i < tables.length; i++) {
       let tablename = tables[i];
-      let queryName = 'getPage' + utils.capitalize(tablename);
+      let queryName = 'getPage' + utils.toCamelCase(tablename);
       resolvers.Query[queryName] = this.contextOverload('getPage', tablename, this.getPage.bind(this));
-      queryName = 'getFirstOf' + utils.capitalize(tablename);
+      queryName = 'getFirstOf' + utils.toCamelCase(tablename);
       resolvers.Query[queryName] = this.contextOverload('getFirstOf', tablename, this.getFirstOf.bind(this));
-      queryName = 'putItem' + utils.capitalize(tablename);
+      queryName = 'putItem' + utils.toCamelCase(tablename);
       resolvers.Mutation[queryName] = this.contextOverload('putItem', tablename, this.putItem.bind(this));
     }
 

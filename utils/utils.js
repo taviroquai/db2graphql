@@ -6,6 +6,13 @@
  * Used maily by Graphql compiler to name
  * Types, Queries and Mutations.
  */
-exports.capitalize = (string) => {
+const capitalize = (string) => {
   return string.charAt(0).toUpperCase() + string.slice(1);
 }
+
+const toCamelCase = (string) => {
+  return string.split('_').map(i => capitalize(i)).join('');
+}
+
+exports.capitalize = capitalize;
+exports.toCamelCase = toCamelCase;

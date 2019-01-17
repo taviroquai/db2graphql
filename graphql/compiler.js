@@ -42,7 +42,7 @@ class Compiler {
     columns.map(c => {
       let column = this.dbSchema[tablename][c];
       if (column.__foreign) {
-        fields.push("  " + column.__foreign.tablename + ": " + utils.capitalize(column.__foreign.tablename));
+        fields.push("  " + column.__foreign.tablename + ": " + utils.toCamelCase(column.__foreign.tablename));
       }
     })
 
@@ -53,11 +53,11 @@ class Compiler {
       columns.map(c => {
         if (this.dbSchema[t][c].__foreign) {
           let ftbl = this.dbSchema[t][c].__foreign.tablename;
-          if (ftbl === tablename) fields.push("  " + t + ": [" + utils.capitalize(t) + "]");
+          if (ftbl === tablename) fields.push("  " + t + ": [" + utils.toCamelCase(t) + "]");
         }
       });
     });
-    return 'type ' + utils.capitalize(tablename) + " {\n" + fields.join(",\n") + "\n}";
+    return 'type ' + utils.toCamelCase(tablename) + " {\n" + fields.join(",\n") + "\n}";
   }
 
   /**
@@ -67,8 +67,8 @@ class Compiler {
    * @param {String} tablename 
    */
   mapDbTableToGraphqlPage(tablename) {
-    return 'type Page' + utils.capitalize(tablename)
-      + "{\n  total: Int,\n  items: [" + utils.capitalize(tablename) + "]\n}";
+    return 'type Page' + utils.toCamelCase(tablename)
+      + "{\n  total: Int,\n  items: [" + utils.toCamelCase(tablename) + "]\n}";
   }
 
   /**
@@ -78,9 +78,9 @@ class Compiler {
    * @param {String} tablename 
    */
   mapDbTableToGraphqlQuery(tablename) {
-    return '  getPage' + utils.capitalize(tablename) + 
+    return '  getPage' + utils.toCamelCase(tablename) + 
       "(limit: Int, skip: Int, orderby: String, ascend: Boolean)"
-      + ": Page" + utils.capitalize(tablename);
+      + ": Page" + utils.toCamelCase(tablename);
   }
 
   /**
@@ -93,9 +93,9 @@ class Compiler {
    * @param {String} tablename 
    */
   mapDbTableToGraphqlFirstOf(tablename) {
-    return '  getFirstOf' + utils.capitalize(tablename) + 
+    return '  getFirstOf' + utils.toCamelCase(tablename) + 
       "(field: String!, value: String!)"
-      + ": " + utils.capitalize(tablename);
+      + ": " + utils.toCamelCase(tablename);
   }
 
   /**
@@ -105,13 +105,18 @@ class Compiler {
    * @param {String} tablename 
    */
   mapDbTableToGraphqlMutation(tablename) {
-    let string = '  putItem' + utils.capitalize(tablename);
+    let string = '  putItem' + utils.toCamelCase(tablename);
     let columns = this.dbDriver.getTableColumnsFromSchema(tablename);
     let vars = columns.map(col => {
-      return '    '+col+': ' 
-        + this.dbDriver.mapDbColumnToGraphqlType(this.dbSchema, col, this.dbSchema[tablename][col]);
+      try {
+        return '    '+col+': ' 
+          + this.dbDriver.mapDbColumnToGraphqlType(this.dbSchema, col, this.dbSchema[tablename][col]);
+      } catch (err) {
+        return '';
+      }
     });
-    string += " (\n" + vars.join(",\n") + "\n  ): " + utils.capitalize(tablename);
+    vars = vars.filter(v => v);
+    string += " (\n" + vars.join(",\n") + "\n  ): " + utils.toCamelCase(tablename);
     return string;
   }
 

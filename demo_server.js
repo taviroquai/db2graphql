@@ -6,7 +6,7 @@ const { ApolloServer, gql } = require('apollo-server');
 const start = async (cb) => {
   const connection = require('./connection.json');
   const dbDriver = new PostgreSQL(connection);
-  const dbSchema = await dbDriver.getSchema();
+  const dbSchema = await dbDriver.getSchema('public', connection.exclude);
 
   // Create Graphql server
   const compiler = new Compiler(dbSchema, dbDriver);

@@ -11,7 +11,8 @@ class PostgreSQL {
    * @param {Object} connection 
    */
   constructor(connection) {
-    this.db = knex(connection);
+    this.connection = connection;
+    this.db = knex(this.connection);
     this.dbSchema = {};
     process.on("exit", () => {
       this.db.destroy();
@@ -29,7 +30,7 @@ class PostgreSQL {
     let graphqlType = '';
     switch(attrs.data_type) {
       case 'boolean':
-        graphqlType = 'Bool';
+        graphqlType = 'Boolean';
         break;
       case 'numeric':
         graphqlType = 'Float';
