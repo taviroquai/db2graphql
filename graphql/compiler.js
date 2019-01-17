@@ -1,12 +1,31 @@
 const utils = require('../utils/utils');
 
+/**
+ * Graphql compiler
+ * 
+ * Compiles to a Graphql schema string
+ * from a database schema generated
+ * by a database adapter
+ */
 class Compiler {
 
+  /**
+   * Creates a new compiler instance
+   * 
+   * @param {Object} dbSchema 
+   * @param {Function} dbDriver 
+   */
   constructor(dbSchema, dbDriver) {
     this.dbSchema = dbSchema;
     this.dbDriver = dbDriver;
   }
 
+  /**
+   * Generate a Graphql Type definition
+   * from a database table
+   * 
+   * @param {String} tablename 
+   */
   mapDbTableToGraphqlType(tablename) {
     let columns = this.dbDriver.getTableColumnsFromSchema(tablename);
     let fields = columns.map(k => {
@@ -41,23 +60,50 @@ class Compiler {
     return 'type ' + utils.capitalize(tablename) + " {\n" + fields.join(",\n") + "\n}";
   }
 
+  /**
+   * Generate a convenient type of Page
+   * for a given database table
+   * 
+   * @param {String} tablename 
+   */
   mapDbTableToGraphqlPage(tablename) {
     return 'type Page' + utils.capitalize(tablename)
       + "{\n  total: Int,\n  items: [" + utils.capitalize(tablename) + "]\n}";
   }
 
+  /**
+   * Generate a convenient getPage query
+   * for paginated results
+   * 
+   * @param {String} tablename 
+   */
   mapDbTableToGraphqlQuery(tablename) {
     return '  getPage' + utils.capitalize(tablename) + 
       "(limit: Int, skip: Int, orderby: String, ascend: Boolean)"
       + ": Page" + utils.capitalize(tablename);
   }
 
+  /**
+   * Generates a convenient getFirstOf query
+   * to get only one record from database.
+   * 
+   * Uses a simple filter that can be used
+   * on Unique columns 
+   * 
+   * @param {String} tablename 
+   */
   mapDbTableToGraphqlFirstOf(tablename) {
     return '  getFirstOf' + utils.capitalize(tablename) + 
       "(field: String!, value: String!)"
       + ": " + utils.capitalize(tablename);
   }
 
+  /**
+   * Generates a convenient mutation putItem
+   * to store a single record into the database
+   * 
+   * @param {String} tablename 
+   */
   mapDbTableToGraphqlMutation(tablename) {
     let string = '  putItem' + utils.capitalize(tablename);
     let columns = this.dbDriver.getTableColumnsFromSchema(tablename);
@@ -69,7 +115,12 @@ class Compiler {
     return string;
   }
 
-  mapDbSchemaToGraphqlSchema(graphqlSchema) {
+  /**
+   * Generate a complete Graphql schema as a string.
+   * Can be used as standalone.
+   */
+  getSchema() {
+    let graphqlSchema = '';
     let graphqlSchemaTypes = [];
     let graphqlSchemaQueries = [];
     let graphqlSchemaMutations = [];
@@ -83,12 +134,6 @@ class Compiler {
     graphqlSchema += graphqlSchemaTypes.join("\n\n") + "\n\n";
     graphqlSchema += "type Query {\n" + graphqlSchemaQueries.join("\n") + "\n}\n\n";
     graphqlSchema += "type Mutation {\n" + graphqlSchemaMutations.join("\n\n") + "\n}";
-    return graphqlSchema;
-  }
-
-  getSchema() {
-    let graphqlSchema = '';
-    graphqlSchema = this.mapDbSchemaToGraphqlSchema(graphqlSchema);
     return graphqlSchema;
   }
 }
