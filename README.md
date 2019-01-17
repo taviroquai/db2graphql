@@ -76,7 +76,7 @@ start();
 ```
 
 ### Implement user-specific resolvers for app specific code
-```
+```js
 // Continue from previous example...
 resolver.on('getFirstOf', async (root, args, context) => {
   const {
@@ -88,7 +88,7 @@ resolver.on('getFirstOf', async (root, args, context) => {
   // You can have direct access to knex instance
   // const user = await db.table(tablename).where(args.field, args.value).first();
 
-  // Use the built-in resolver method
+  // You can still use the built-in resolver method
   const user = await resolver.getFirstOf(tablename, args);
 
   // Transform data
@@ -98,3 +98,26 @@ resolver.on('getFirstOf', async (root, args, context) => {
   return user;
 });
 ```
+
+## Run de demo
+```
+$ git clone https://github.com/taviroquai/db2graphql.git
+$ cd db2graphql
+$ npm install
+$ psql -h localhost -U postgres -c "CREATE DATABASE db2graphql"
+$ cp connection.example.json connection.json
+# Edit connection.json
+$ npm run demo-db
+$ npm run start
+```
+
+Open browser on http://localhost:4000 and see your Graphql API ready!
+
+## Collab
+
+Anyone is free to collab :)
+
+## License
+MIT, what else?
+
+
