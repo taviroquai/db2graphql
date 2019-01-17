@@ -34,33 +34,32 @@ class PostgreSQL {
     return graphqlType;
   }
 
-  async page(tablename, args) {
-    return new Promise((resolve, reject) => {
-      this.db(tablename)
-        .limit(args.limit)
-        .offset(args.skip)
-        .orderBy(args.orderby || 'id', args.ascend ? 'asc' : 'desc')
-        .then(resolve)
-        .catch(reject);
-    });  
+  async page(tablename, pagination) {
+    return await this.db(tablename)
+      .limit(pagination.limit)
+      .offset(pagination.skip)
+      .orderBy(pagination.orderby || 'id', pagination.ascend ? 'asc' : 'desc');
   }
 
   async pageTotal(tablename, args) {
-    return new Promise((resolve, reject) => {
-      this.db(tablename)
-        .count()
-        .then(resolve)
-        .catch(reject);
-    });  
+    return await this.db(tablename).count();
   }
 
-  async pageWhere(tablename, args) {
-    return new Promise((resolve, reject) => {
-      this.db(tablename)
-        .where(args.field, args.value)
-        .then(resolve)
-        .catch(reject);
-    });
+  async pageWhere(tablename, where, pagination = null) {
+    let query = this.db(tablename);
+
+    // Add where condition
+    query.where(where.field, where.value);
+    
+    // Add pagination
+    if (pagination) {
+      query.limit(args.limit)
+      .offset(args.skip)
+      .orderBy(args.orderby || 'id', args.ascend ? 'asc' : 'desc');
+    }
+
+    // Run query
+    return await query;
   }
 
   async loadForeign(item, tablename, depth = 1) {
@@ -79,8 +78,8 @@ class PostgreSQL {
     if (depth > 3) return;
     for (let i = 0; i < this.dbSchema[tablename].__reverse.length; i++) {
       let relation = this.dbSchema[tablename].__reverse[i];
-      let params = { field: relation.fcolumnname, value: item[relation.columnname] };
-      item[relation.ftablename] = await this.pageWhere(relation.ftablename, params);
+      let where = { field: relation.fcolumnname, value: item[relation.columnname] };
+      item[relation.ftablename] = await this.pageWhere(relation.ftablename, where);
       for (let j = 0; j < item[relation.ftablename].length; j++) {
         await this.loadForeign(item[relation.ftablename][j], relation.ftablename, depth+1);
         await this.loadReverse(item[relation.ftablename][j], relation.ftablename, depth+1);
@@ -88,45 +87,37 @@ class PostgreSQL {
     }
   }
 
-  async firstOf(tablename, args, depth = 1) {
-    return new Promise((resolve, reject) => {
+  async firstOf(tablename, where, depth = 1) {
 
-      // Load item
-      this.db(tablename)
-        .where(args.field, args.value)
-        .first()
-        .then(async item => {
+    // Load item
+    let item = await this.db(tablename)
+      .where(where.field, where.value)
+      .first()
+      
+    // Load relations
+    await this.loadForeign(item, tablename, depth);
+    await this.loadReverse(item, tablename, depth);
 
-          // Load relations
-          await this.loadForeign(item, tablename, depth);
-          await this.loadReverse(item, tablename, depth);
-          resolve(item);
-
-        })
-        .catch(reject);
-    });  
+    // Return item
+    return item; 
   }
 
   async putItem(tablename, args) {
-    return new Promise((resolve, reject) => {
-      let query = null;
-      if (!args.id) {
-        query = this.db(tablename)
-          .returning('id')
-          .insert(args);
-      } else {
-        query = this.db.table(tablename)
-          .where('id', args.id)
-          .update(args);
-      }
-      query.then(resolve).catch(reject);
-    });
+    let result = null;
+    if (!args.id) {
+      result = await this.db(tablename)
+        .returning('id')
+        .insert(args);
+    } else {
+      result = await this.db.table(tablename)
+        .where('id', args.id)
+        .update(args);
+    }
+    return result;
   }
 
   async query(sql, params) {
-    return new Promise((resolve, reject) => {
-      this.db.raw(sql, params).then(resolve).catch(reject);
-    });  
+    return await this.db.raw(sql, params);
   }
 
   getExcludeCondition(exclude = []) {
