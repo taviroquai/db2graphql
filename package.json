@@ -1,18 +1,22 @@
 {
   "name": "db2graphql",
   "version": "1.0.0",
-  "description": "",
+  "description": "Generate Graphql schema based on existing relational database",
   "main": "index.js",
   "scripts": {
+    "demo-db": "psql -U postgres -f ./migrations/001.sql db2graphql",
+    "start": "node demo",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "apollo-server": "^2.3.1",
-    "graphql": "^14.1.1",
     "knex": "^0.16.3",
     "pg": "^7.8.0"
+  },
+  "devDependencies": {
+    "apollo-server": "^2.3.1",
+    "graphql": "^14.1.1"
   }
 }
