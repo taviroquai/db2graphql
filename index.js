@@ -16,6 +16,20 @@ const start = async () => {
     resolvers: resolver.getResolvers(),
   });
 
+  // How to override resolvers (opcional)
+  resolver.on('getPage', async (root, args, context) => {
+    const { resolver, tablename, db } = context.ioc;
+    return resolver.getPage(tablename, args);
+  });
+  resolver.on('getFirstOf', async (root, args, context) => {
+    const { resolver, tablename, db } = context.ioc;
+    return resolver.getFirstOf(tablename, args);
+  });
+  resolver.on('putItem', async (root, args, context) => {
+    const { resolver, tablename, db } = context.ioc;
+    return resolver.putItem(tablename, args);
+  });
+
   // Start server
   server.listen().then(({ url }) => {
     console.log(`🚀 Server ready at ${url}`)
