@@ -8,7 +8,8 @@ class Compiler {
   }
 
   mapDbTableToGraphqlType(tablename) {
-    let fields = Object.keys(this.dbSchema[tablename]).map(k => {
+    let columns = this.dbDriver.getTableColumnsFromSchema(tablename);
+    let fields = columns.map(k => {
       try {
         return "  " + k + ': ' 
           + this.dbDriver.mapDbColumnToGraphqlType(this.dbSchema, k, this.dbSchema[tablename][k]);
@@ -17,10 +18,22 @@ class Compiler {
       }
     });
     fields = fields.filter(i => i);
-    Object.keys(this.dbSchema).map(t => {
-      Object.keys(this.dbSchema[t]).map(c => {
-        if (this.dbSchema[t][c].foreign) {
-          let ftbl = this.dbSchema[t][c].foreign.ftablename;
+
+    // Add foreign relations
+    columns.map(c => {
+      let column = this.dbSchema[tablename][c];
+      if (column.__foreign) {
+        fields.push("  " + column.__foreign.tablename + ": " + utils.capitalize(column.__foreign.tablename));
+      }
+    })
+
+    // Add reverse relation
+    let tables = this.dbDriver.getTablesFromSchema();
+    tables.map(t => {
+      let columns = this.dbDriver.getTableColumnsFromSchema(t);
+      columns.map(c => {
+        if (this.dbSchema[t][c].__foreign) {
+          let ftbl = this.dbSchema[t][c].__foreign.tablename;
           if (ftbl === tablename) fields.push("  " + t + ": [" + utils.capitalize(t) + "]");
         }
       });
@@ -47,7 +60,8 @@ class Compiler {
 
   mapDbTableToGraphqlMutation(tablename) {
     let string = '  putItem' + utils.capitalize(tablename);
-    let vars = Object.keys(this.dbSchema[tablename]).map(col => {
+    let columns = this.dbDriver.getTableColumnsFromSchema(tablename);
+    let vars = columns.map(col => {
       return '    '+col+': ' 
         + this.dbDriver.mapDbColumnToGraphqlType(this.dbSchema, col, this.dbSchema[tablename][col]);
     });

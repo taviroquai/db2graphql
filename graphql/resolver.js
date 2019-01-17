@@ -37,7 +37,7 @@ class Resolver {
     }
 
     // Build resolvers
-    let tables = Object.keys(this.dbSchema);
+    let tables = this.dbDriver.getTablesFromSchema();
     for (let i = 0; i < tables.length; i++) {
       let queryName = 'getPage' + utils.capitalize(tables[i]);
       resolvers.Query[queryName] = this.getPage(tables[i]);

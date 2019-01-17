@@ -4,6 +4,7 @@ class PostgreSQL {
 
   constructor(connection) {
     this.db = knex(connection);
+    this.dbSchema = {};
     process.on("exit", () => {
       this.db.destroy();
     })
@@ -53,12 +54,55 @@ class PostgreSQL {
     });  
   }
 
-  async firstOf(tablename, args) {
+  async pageWhere(tablename, args) {
     return new Promise((resolve, reject) => {
       this.db(tablename)
         .where(args.field, args.value)
-        .first()
         .then(resolve)
+        .catch(reject);
+    });
+  }
+
+  async loadForeign(item, tablename, depth = 1) {
+    if (depth > 3) return;
+    let columns = this.getTableColumnsFromSchema(tablename);
+    for (let i = 0; i < columns.length; i++) {
+      let column = this.dbSchema[tablename][columns[i]];
+      if (column.__foreign) {
+        let params = { field: column.__foreign.columnname, value: item[columns[i]] };
+        item[column.__foreign.tablename] = await this.firstOf(column.__foreign.tablename, params, depth+1);
+      }
+    }
+  }
+
+  async loadReverse(item, tablename, depth = 1) {
+    if (depth > 3) return;
+    for (let i = 0; i < this.dbSchema[tablename].__reverse.length; i++) {
+      let relation = this.dbSchema[tablename].__reverse[i];
+      let params = { field: relation.fcolumnname, value: item[relation.columnname] };
+      item[relation.ftablename] = await this.pageWhere(relation.ftablename, params);
+      for (let j = 0; j < item[relation.ftablename].length; j++) {
+        await this.loadForeign(item[relation.ftablename][j], relation.ftablename, depth+1);
+        await this.loadReverse(item[relation.ftablename][j], relation.ftablename, depth+1);
+      }
+    }
+  }
+
+  async firstOf(tablename, args, depth = 1) {
+    return new Promise((resolve, reject) => {
+
+      // Load item
+      this.db(tablename)
+        .where(args.field, args.value)
+        .first()
+        .then(async item => {
+
+          // Load relations
+          await this.loadForeign(item, tablename, depth);
+          await this.loadReverse(item, tablename, depth);
+          resolve(item);
+
+        })
         .catch(reject);
     });  
   }
@@ -66,7 +110,6 @@ class PostgreSQL {
   async putItem(tablename, args) {
     return new Promise((resolve, reject) => {
       let query = null;
-      console.log('args', args)
       if (!args.id) {
         query = this.db(tablename)
           .returning('id')
@@ -161,6 +204,14 @@ class PostgreSQL {
     return fkeys;
   }
 
+  getTablesFromSchema() {
+    return Object.keys(this.dbSchema);
+  }
+
+  getTableColumnsFromSchema(tablename) {
+    return Object.keys(this.dbSchema[tablename]).filter(c => c !== '__reverse');
+  }
+
   async getSchema(schemaname = 'public', exclude = []) {
 
     let dbSchema = {};
@@ -169,7 +220,7 @@ class PostgreSQL {
     let tables = await this.getTables(schemaname, exclude);
     for (let i = 0; i < tables.length; i++) {
       let tablename = tables[i].name;
-      dbSchema[tablename] = {};
+      dbSchema[tablename] = { __reverse: []};
 
       // Get columns
       let columns = await this.getColumns(schemaname, tablename);
@@ -183,12 +234,23 @@ class PostgreSQL {
     for (let tablename in dbSchema) {
       const fkeys = await this.getForeignKeys(schemaname, tablename);
       for (let j = 0; j < fkeys.length; j++) {
-        dbSchema[tablename][fkeys[j].columnname]['foreign'] = fkeys[j];
+        dbSchema[tablename][fkeys[j].columnname]['__foreign'] = {
+          schemaname: fkeys[j].ftableschema,
+          tablename: fkeys[j].ftablename,
+          columnname: fkeys[j].fcolumnname
+        };
+        dbSchema[fkeys[j].ftablename]['__reverse'].push({
+          fschemaname: fkeys[j].schemaname,
+          ftablename: fkeys[j].tablename,
+          fcolumnname: fkeys[j].columnname,
+          columnname: fkeys[j].fcolumnname
+        });
       }
     }
 
     // Return database schema
-    return dbSchema;
+    this.dbSchema = dbSchema;
+    return this.dbSchema;
   }
 }
 
