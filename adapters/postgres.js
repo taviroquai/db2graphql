@@ -247,7 +247,7 @@ class PostgreSQL {
     if (depth > 3) return;
     for (let i = 0; i < this.dbSchema[tablename].__reverse.length; i++) {
       let relation = this.dbSchema[tablename].__reverse[i];
-      let argsCondition = Object.assign({}, args);
+      let argsCondition = Object.assign({ filter: {}}, args);
       argsCondition.filter[relation.ftablename] = [['=', relation.fcolumnname, item[relation.columnname]]];
       item[relation.ftablename] = await this.page(relation.ftablename, argsCondition);
       for (let j = 0; j < item[relation.ftablename].length; j++) {
