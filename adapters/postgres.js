@@ -89,8 +89,8 @@ class PostgreSQL {
   async firstOf(tablename, args, depth = 1) {
 
     // Load item
-    let query = this.db(tablename)
-    (args) && this.addWhereFromArgs(tablename, query, args)
+    let query = this.db(tablename);
+    (args) && this.addWhereFromArgs(tablename, query, args);
     const item = await query.first();
       
     // Load relations
@@ -112,7 +112,7 @@ class PostgreSQL {
     const pk = this.getPrimaryKeyFromSchema(tablename);
     let result = null;
     if (!data[pk]) {
-      result = await this.db(tablename)
+      result = await this.db.table(tablename)
         .returning(pk)
         .insert(data);
     } else {

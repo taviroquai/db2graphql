@@ -81,13 +81,18 @@ class Resolver {
    * a single record onto the database
    * 
    * @param {String} tablename 
-   * @param {Object} args 
+   * @param {Object} data
    */
-  async putItem(tablename, args) {
-    args = this.parseArgs('putItem', args);
-    const result = await this.dbDriver.putItem(tablename, args);
-    if (!args.id) args.id = result[0];
-    return await this.dbDriver.firstOf(tablename, { field: 'id', value: args.id });
+  async putItem(tablename, data) {
+    const pk = this.dbDriver.getPrimaryKeyFromSchema(tablename);
+
+    // Store item
+    const result = await this.dbDriver.putItem(tablename, data);
+    if (!data[pk]) data[pk] = result[0];
+
+    // Retrieve updated item
+    const args = { filter: { [tablename]: [['=', pk, data[pk]]] }};
+    return await this.dbDriver.firstOf(tablename, args);
   }
 
   /**
@@ -174,7 +179,6 @@ class Resolver {
     switch(queryName) {
       case 'getPage': return this.parseArgsGetPage(args);
       case 'getFirstOf': return this.parseArgsGetFirstOf(args);
-      case 'putItem': return this.parseArgsPutItem(args);
       default: ;
     }
     return args;
@@ -214,11 +218,18 @@ class Resolver {
     let tables = this.dbDriver.getTablesFromSchema();
     for (let i = 0; i < tables.length; i++) {
       let tablename = tables[i];
-      let queryName = 'getPage' + utils.toCamelCase(tablename);
+      let queryName, typeName = utils.toCamelCase(tablename);
+
+      // Create getPage resolver
+      queryName = 'getPage' + typeName;
       resolvers.Query[queryName] = this.contextOverload('getPage', tablename, this.getPage.bind(this));
-      queryName = 'getFirstOf' + utils.toCamelCase(tablename);
+      
+      // Create getFirstOf resolver
+      queryName = 'getFirstOf' + typeName;
       resolvers.Query[queryName] = this.contextOverload('getFirstOf', tablename, this.getFirstOf.bind(this));
-      queryName = 'putItem' + utils.toCamelCase(tablename);
+      
+      // Create putItem resolver
+      queryName = 'putItem' + typeName;
       resolvers.Mutation[queryName] = this.contextOverload('putItem', tablename, this.putItem.bind(this));
     }
 
