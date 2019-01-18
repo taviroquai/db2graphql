@@ -58,8 +58,10 @@ class PostgreSQL {
    */
   async page(tablename, args) {
     let query = this.db(tablename);
-    this.addWhereFromArgs(tablename, query, args);
-    this.addPaginationFromArgs(tablename, query, args);
+    if (args) {
+      this.addWhereFromArgs(tablename, query, args);
+      this.addPaginationFromArgs(tablename, query, args);
+    }
     const items = await query;
     return items;
   }
@@ -72,7 +74,7 @@ class PostgreSQL {
    */
   async pageTotal(tablename, args) {
     const query = this.db(tablename);
-    this.addWhereFromArgs(args); 
+    (args) && this.addWhereFromArgs(tablename, query, args); 
     return await query.count();
   }
 
@@ -88,7 +90,7 @@ class PostgreSQL {
 
     // Load item
     let query = this.db(tablename)
-    this.addWhereFromArgs(tablename, query, args)
+    (args) && this.addWhereFromArgs(tablename, query, args)
     const item = await query.first();
       
     // Load relations
@@ -155,40 +157,48 @@ class PostgreSQL {
    * @param {Object} args 
    */
   addWhereFromArgs(tablename, query, args) {
+
+    // Validate filter arguments
+    if (!args.filter) return;
     let conditions = args.filter[tablename];
-    if (conditions) {
-      for (let i = 0; i < conditions.length; i++) {
-        this.convertConditionToWhereClause(query, conditions[i]);
-      }
+    if (!conditions) return;
+
+    // Apply filters
+    for (let i = 0; i < conditions.length; i++) {
+      this.convertConditionToWhereClause(query, conditions[i]);
     }
   }
 
   /**
-   * Load knex query with all filters
+   * Load knex query with all pagination
    * 
    * @param {Function} query 
    * @param {Object} args 
    */
   addPaginationFromArgs(tablename, query, args) {
-    const pk = this.getPrimaryKeyFromSchema(tablename);
+
+    // Validate pagination arguments
+    if (!args.pagination) return;
     let pagination = args.pagination[tablename];
-    if (pagination) {
-      for (let i = 0; i < pagination.length; i++) {
-        const op = pagination[i][0];
-        let value = pagination[i][1];
-        switch(op) {
-          case 'limit':
-            query.limit(value || 25);
-            break;
-          case 'offset':
-            query.offset(value || 0);
-            break;
-          case 'orderby':
-            value = value.split(' ');
-            if (!value.length === 2) throw new Error('Invalid orderby expression in:', pagination[i][0]);
-            query.orderBy(value[0] || pk, value[1] || 'asc');
-            break;
-        }
+    if (!pagination) return;
+
+    // Apply pagination to query
+    const pk = this.getPrimaryKeyFromSchema(tablename);
+    for (let i = 0; i < pagination.length; i++) {
+      const op = pagination[i][0];
+      let value = pagination[i][1];
+      switch(op) {
+        case 'limit':
+          query.limit(value || 25);
+          break;
+        case 'offset':
+          query.offset(value || 0);
+          break;
+        case 'orderby':
+          value = value.split(' ');
+          if (!value.length === 2) throw new Error('Invalid orderby expression in:', pagination[i][0]);
+          query.orderBy(value[0] || pk, value[1] || 'asc');
+          break;
       }
     }
   }

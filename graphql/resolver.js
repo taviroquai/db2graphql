@@ -56,9 +56,10 @@ class Resolver {
    * @param {Object} args 
    */
   async getPage(tablename, args) {
+    args = this.parseArgs('getPage', args);
     const result = await this.dbDriver.pageTotal(tablename, args);
     const items = await this.dbDriver.page(tablename, args);
-    return { total: result[0].count, items };
+    return { total: result[0].count, tablename, items };
   }
 
   /**
@@ -70,6 +71,7 @@ class Resolver {
    * @param {Object} args 
    */
   async getFirstOf(tablename, args) {
+    args = this.parseArgs('getFirstOf', args);
     return await this.dbDriver.firstOf(tablename, args)
   }
 
@@ -82,6 +84,7 @@ class Resolver {
    * @param {Object} args 
    */
   async putItem(tablename, args) {
+    args = this.parseArgs('putItem', args);
     const result = await this.dbDriver.putItem(tablename, args);
     if (!args.id) args.id = result[0];
     return await this.dbDriver.firstOf(tablename, { field: 'id', value: args.id });

@@ -67,8 +67,9 @@ class Compiler {
    * @param {String} tablename 
    */
   mapDbTableToGraphqlPage(tablename) {
-    return 'type Page' + utils.toCamelCase(tablename)
-      + "{\n  total: Int,\n  items: [" + utils.toCamelCase(tablename) + "]\n}";
+    const typeName = utils.toCamelCase(tablename)
+    return 'type Page' + typeName
+      + "{\n  total: Int,\n  tablename: String,\n  items: [" + typeName + "]\n}";
   }
 
   /**
@@ -78,9 +79,10 @@ class Compiler {
    * @param {String} tablename 
    */
   mapDbTableToGraphqlQuery(tablename) {
-    return '  getPage' + utils.toCamelCase(tablename) + 
-      "(filter: String, pagination: String)"
-      + ": Page" + utils.toCamelCase(tablename);
+    const typeName = utils.toCamelCase(tablename)
+    return '  getPage' + typeName 
+      + "(filter: String, pagination: String)"
+      + ": Page" + typeName;
   }
 
   /**
@@ -93,8 +95,9 @@ class Compiler {
    * @param {String} tablename 
    */
   mapDbTableToGraphqlFirstOf(tablename) {
-    return '  getFirstOf' + utils.toCamelCase(tablename) + 
-      "(filter: String, pagination: String)"
+    const typeName = utils.toCamelCase(tablename);
+    return '  getFirstOf' + typeName 
+      + "(filter: String, pagination: String)"
       + ": " + utils.toCamelCase(tablename);
   }
 
@@ -105,7 +108,8 @@ class Compiler {
    * @param {String} tablename 
    */
   mapDbTableToGraphqlMutation(tablename) {
-    let string = '  putItem' + utils.toCamelCase(tablename);
+    const typeName = utils.toCamelCase(tablename)
+    let string = '  putItem' + typeName;
     let columns = this.dbDriver.getTableColumnsFromSchema(tablename);
     let vars = columns.map(col => {
       try {
@@ -116,7 +120,7 @@ class Compiler {
       }
     });
     vars = vars.filter(v => v);
-    string += " (\n" + vars.join(",\n") + "\n  ): " + utils.toCamelCase(tablename);
+    string += " (\n" + vars.join(",\n") + "\n  ): " + typeName;
     return string;
   }
 
