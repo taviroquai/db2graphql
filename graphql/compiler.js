@@ -79,7 +79,7 @@ class Compiler {
    */
   mapDbTableToGraphqlQuery(tablename) {
     return '  getPage' + utils.toCamelCase(tablename) + 
-      "(limit: Int, skip: Int, orderby: String, ascend: Boolean)"
+      "(filter: String, pagination: String)"
       + ": Page" + utils.toCamelCase(tablename);
   }
 
@@ -94,7 +94,7 @@ class Compiler {
    */
   mapDbTableToGraphqlFirstOf(tablename) {
     return '  getFirstOf' + utils.toCamelCase(tablename) + 
-      "(field: String!, value: String!)"
+      "(filter: String, pagination: String)"
       + ": " + utils.toCamelCase(tablename);
   }
 

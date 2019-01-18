@@ -88,6 +88,96 @@ class Resolver {
   }
 
   /**
+   * Parse filter expression
+   * Convert a string expression to an Object
+   * containing a the tablename and
+   * a set of conditions.
+   * It's up to the database driver to interprete
+   * these conditions.
+   * 
+   * @param {String} filterExpr 
+   */
+  parseFilterExpression(filterExpr) {
+    const filter = {};
+    const expr = filterExpr.split('|');
+    expr.map(e1 => {
+      const [ tablename, where ] = e1.split(':');
+      if (!tablename) throw new Error('Tablename not found in: ' + e1);
+      if (!where) throw new Error('Where expression not found in: ' + e1);
+      filter[tablename.trim()] = [];
+      where.split(';').map(f1 => {
+        let op = /\<\=\>|>=|<=|=|>|<|~|\#/.exec(f1);
+        if (!op) throw new Error('Filter operation not suported in: ' + f1);
+        op = op[0].trim();
+        let condition = f1.split(op);
+        condition.unshift(op);
+        condition = condition.map(c => c.trim())
+        filter[tablename].push(condition);
+      });
+    });
+    return filter;
+  }
+
+  /**
+   * 
+   * @param {String} expression 
+   */
+  parsePaginationExpression(expression) {
+    const pagination = {};
+    const expr = expression.split('|');
+    expr.map(e1 => {
+      const [ tablename, pagExpr ] = e1.split(':');
+      if (!tablename) throw new Error('Tablename not found in: ' + e1);
+      if (!pagExpr) throw new Error('Pagination not found in: ' + e1);
+      pagination[tablename.trim()] = [];
+      pagExpr.split(';').map(f1 => {
+        let params = f1.split('=');
+        params = params.map(p => p.trim())
+        pagination[tablename].push(params);
+      });
+    });
+    return pagination;
+  }
+
+  /**
+   * Parse args for getPage API
+   * 
+   * @param {Object} args 
+   */
+  parseArgsGetPage(args) {
+    if (args.filter) args.filter = this.parseFilterExpression(args.filter);
+    if (args.pagination) args.pagination = this.parsePaginationExpression(args.pagination);
+    return args;
+  }
+
+  /**
+   * Parse args for getFirstOf API
+   * 
+   * @param {Object} args 
+   */
+  parseArgsGetFirstOf(args) {
+    if (args.filter) args.filter = this.parseFilterExpression(args.filter);
+    if (args.pagination) args.pagination = this.parsePaginationExpression(args.pagination);
+    return args;
+  }
+
+  /**
+   * Parse arguments
+   * 
+   * @param {String} queryName 
+   * @param {Object} args 
+   */
+  parseArgs(queryName, args) {
+    switch(queryName) {
+      case 'getPage': return this.parseArgsGetPage(args);
+      case 'getFirstOf': return this.parseArgsGetFirstOf(args);
+      case 'putItem': return this.parseArgsPutItem(args);
+      default: ;
+    }
+    return args;
+  }
+
+  /**
    * Implements IoC
    * Allows to give control to the user override
    * while overloading the Graphql context

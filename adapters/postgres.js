@@ -56,12 +56,12 @@ class PostgreSQL {
    * @param {String} tablename 
    * @param {Object} pagination 
    */
-  async page(tablename, pagination) {
-    const pk = this.getPrimaryKeyFromSchema(tablename);
-    return await this.db(tablename)
-      .limit(pagination.limit || 25)
-      .offset(pagination.skip)
-      .orderBy(pagination.orderby || pk, pagination.ascend ? 'asc' : 'desc');
+  async page(tablename, args) {
+    let query = this.db(tablename);
+    this.addWhereFromArgs(tablename, query, args);
+    this.addPaginationFromArgs(tablename, query, args);
+    const items = await query;
+    return items;
   }
 
   /**
@@ -71,33 +71,9 @@ class PostgreSQL {
    * @param {Object} args 
    */
   async pageTotal(tablename, args) {
-    return await this.db(tablename).count();
-  }
-
-  /**
-   * Get table records using pagination or
-   * filter with where clause
-   * 
-   * @param {String} tablename 
-   * @param {Object|null} where 
-   * @param {Object|null} pagination 
-   */
-  async pageWhere(tablename, where = null, pagination = null) {
-    const pk = this.getPrimaryKeyFromSchema(tablename);
-    let query = this.db(tablename);
-
-    // Add where condition
-    if (where) query.where(where.field, where.value);
-    
-    // Add pagination
-    if (pagination) {
-      query.limit(pagination.limit || 25)
-      .offset(pagination.skip)
-      .orderBy(pagination.orderby || pk, pagination.ascend ? 'asc' : 'desc');
-    }
-
-    // Run query
-    return await query;
+    const query = this.db(tablename);
+    this.addWhereFromArgs(args); 
+    return await query.count();
   }
 
   /**
@@ -105,19 +81,19 @@ class PostgreSQL {
    * Uses eager loading
    * 
    * @param {String} tablename 
-   * @param {Object} where 
+   * @param {Object} args
    * @param {Number} depth 
    */
-  async firstOf(tablename, where, depth = 1) {
+  async firstOf(tablename, args, depth = 1) {
 
     // Load item
-    let item = await this.db(tablename)
-      .where(where.field, where.value)
-      .first()
+    let query = this.db(tablename)
+    this.addWhereFromArgs(tablename, query, args)
+    const item = await query.first();
       
     // Load relations
-    await this.loadForeign(item, tablename, depth);
-    await this.loadReverse(item, tablename, depth);
+    await this.loadForeign(item, tablename, args, depth);
+    await this.loadReverse(item, tablename, args, depth);
 
     // Return item
     return item; 
@@ -146,6 +122,78 @@ class PostgreSQL {
   }
 
   /**
+   * Load knex query with condition
+   * 
+   * @param {Function} query 
+   * @param {Object} condition 
+   */
+  convertConditionToWhereClause(query, condition) {
+    const column = condition[1];
+    let op = condition[0];
+    let value = condition[2];
+    switch(op) {
+      case '~':
+        op = 'ilike';
+        value = '%'+value.replace(' ', '%')+'%';
+        query.where(column, 'ilike', value);
+        break;
+      case '#':
+        query.whereIn(column, value.split(','));
+        break;
+      case '<=>':
+        query.whereRaw(column + ' = ' + value);
+        break;
+      default:
+        query.where(column, op, value);
+    }
+  }
+
+  /**
+   * Load knex query with all filters
+   * 
+   * @param {Function} query 
+   * @param {Object} args 
+   */
+  addWhereFromArgs(tablename, query, args) {
+    let conditions = args.filter[tablename];
+    if (conditions) {
+      for (let i = 0; i < conditions.length; i++) {
+        this.convertConditionToWhereClause(query, conditions[i]);
+      }
+    }
+  }
+
+  /**
+   * Load knex query with all filters
+   * 
+   * @param {Function} query 
+   * @param {Object} args 
+   */
+  addPaginationFromArgs(tablename, query, args) {
+    const pk = this.getPrimaryKeyFromSchema(tablename);
+    let pagination = args.pagination[tablename];
+    if (pagination) {
+      for (let i = 0; i < pagination.length; i++) {
+        const op = pagination[i][0];
+        let value = pagination[i][1];
+        switch(op) {
+          case 'limit':
+            query.limit(value || 25);
+            break;
+          case 'offset':
+            query.offset(value || 0);
+            break;
+          case 'orderby':
+            value = value.split(' ');
+            if (!value.length === 2) throw new Error('Invalid orderby expression in:', pagination[i][0]);
+            query.orderBy(value[0] || pk, value[1] || 'asc');
+            break;
+        }
+      }
+    }
+  }
+
+  /**
    * Run a raw SQL query
    * 
    * @param {String} sql 
@@ -162,16 +210,16 @@ class PostgreSQL {
    * 
    * @param {Object} item 
    * @param {String} tablename 
+   * @param {object} args
    * @param {Number} depth 
    */
-  async loadForeign(item, tablename, depth = 1) {
+  async loadForeign(item, tablename, args, depth = 1) {
     if (depth > 3) return;
     let columns = this.getTableColumnsFromSchema(tablename);
     for (let i = 0; i < columns.length; i++) {
       let column = this.dbSchema[tablename][columns[i]];
       if (column.__foreign) {
-        let params = { field: column.__foreign.columnname, value: item[columns[i]] };
-        item[column.__foreign.tablename] = await this.firstOf(column.__foreign.tablename, params, depth+1);
+        item[column.__foreign.tablename] = await this.firstOf(column.__foreign.tablename, args, depth+1);
       }
     }
   }
@@ -182,17 +230,19 @@ class PostgreSQL {
    * 
    * @param {Object} item 
    * @param {String} tablename 
+   * @param {object} args
    * @param {Number} depth 
    */
-  async loadReverse(item, tablename, depth = 1) {
+  async loadReverse(item, tablename, args, depth = 1) {
     if (depth > 3) return;
     for (let i = 0; i < this.dbSchema[tablename].__reverse.length; i++) {
       let relation = this.dbSchema[tablename].__reverse[i];
-      let where = { field: relation.fcolumnname, value: item[relation.columnname] };
-      item[relation.ftablename] = await this.pageWhere(relation.ftablename, where);
+      let argsCondition = Object.assign({}, args);
+      argsCondition.filter[relation.ftablename] = [['=', relation.fcolumnname, item[relation.columnname]]];
+      item[relation.ftablename] = await this.page(relation.ftablename, argsCondition);
       for (let j = 0; j < item[relation.ftablename].length; j++) {
-        await this.loadForeign(item[relation.ftablename][j], relation.ftablename, depth+1);
-        await this.loadReverse(item[relation.ftablename][j], relation.ftablename, depth+1);
+        await this.loadForeign(item[relation.ftablename][j], relation.ftablename, args, depth+1);
+        await this.loadReverse(item[relation.ftablename][j], relation.ftablename, args, depth+1);
       }
     }
   }

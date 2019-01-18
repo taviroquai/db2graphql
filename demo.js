@@ -11,6 +11,7 @@ start(({ resolver }) => {
     // const user = await db.table(tablename).where(args.field, args.value).first();
 
     // Use default result
+    args = resolver.parseArgs('getFirstOf', args);
     const user = await resolver.getFirstOf(tablename, args);
 
     // Transform data
