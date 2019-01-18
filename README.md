@@ -49,7 +49,7 @@ const Compiler = require('./graphql/compiler');
 const Resolver = require('./graphql/resolver');
 const { ApolloServer, gql } = require('apollo-server');
 
-const start = async (cb) => {
+const start = async () => {
   const connection = require('./connection.json');
   const dbDriver = new PostgreSQL(connection);
   const dbSchema = await dbDriver.getSchema();
@@ -66,9 +66,6 @@ const start = async (cb) => {
   // Start server
   server.listen().then(({ url }) => {
     console.log(`🚀 Server ready at ${url}`);
-
-    // Ready to use!
-    cb({ resolver, dbDriver, compiler, dbSchema, schema });
   });
 }
 
@@ -81,7 +78,7 @@ start();
 resolver.on('getFirstOf', async (root, args, context) => {
   const {
     resolver,   // Access the built-in resolver
-    tablename,  // Access the requested table
+    tablename,  // Access the requested table name
     db          // Access the Knex instance
   } = context.ioc;
 

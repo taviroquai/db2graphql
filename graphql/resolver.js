@@ -99,8 +99,10 @@ class Resolver {
    */
   contextOverload(queryName, tablename, cb) {
     return async (root, args, context) => {
-      context.ioc = { resolver: this, tablename, db: this.dbDriver.db };
-      if (this.overrides[queryName]) return await this.overrides[queryName](root, args, context);
+      if (this.overrides[queryName]) {
+        context.ioc = { resolver: this, tablename, db: this.dbDriver.db };
+        return await this.overrides[queryName](root, args, context);
+      }
       return await cb(tablename, args);
     }
   }
