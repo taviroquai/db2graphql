@@ -32,14 +32,14 @@ const start = async (cb) => {
   const connection = require('./connection.json');
   const dbDriver = new PostgreSQL(connection);
   const dbSchema = await dbDriver.getSchema();
-  const compiler = new Compiler(dbSchema, dbDriver);
   
   // Generate Graphql schema
+  const compiler = new Compiler(dbSchema, dbDriver);
   console.log(compiler.getSchema());
 }
 
 // Run
-start();
+start().catch(err => console.log(err));
 ```
 
 ### Use built-in resolver for fast API prototyping
@@ -58,6 +58,8 @@ const start = async () => {
   const compiler = new Compiler(dbSchema, dbDriver);
   const resolver = new Resolver(dbSchema, dbDriver);
   const schema = compiler.getSchema();
+  if (!schema) throw new Error('Error: empty schema');
+
   const server = new ApolloServer({
     typeDefs: gql`${schema}`,
     resolvers: resolver.getResolvers(),
@@ -69,7 +71,7 @@ const start = async () => {
   });
 }
 
-start();
+start().catch(err => console.log(err));
 ```
 
 ### Implement user-specific resolvers for app specific code
@@ -83,16 +85,13 @@ resolver.on('getFirstOf', async (root, args, context) => {
   } = context.ioc;
 
   // You can have direct access to knex instance
-  // const user = await db.table(tablename).where(args.field, args.value).first();
+  // const data = await db(tablename).where(args.field, args.value).first();
 
   // You can still use the built-in resolver method
-  const user = await resolver.getFirstOf(tablename, args);
-
-  // Transform data
-  delete user.password;
+  const data = await resolver.getFirstOf(tablename, args);
 
   // Send resolver output
-  return user;
+  return data;
 });
 ```
 

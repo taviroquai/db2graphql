@@ -12,6 +12,8 @@ const start = async (cb) => {
   const compiler = new Compiler(dbSchema, dbDriver);
   const resolver = new Resolver(dbSchema, dbDriver);
   const schema = compiler.getSchema();
+  if (!schema) throw new Error('Error: empty schema');
+
   const server = new ApolloServer({
     typeDefs: gql`${schema}`,
     resolvers: resolver.getResolvers(),
@@ -22,7 +24,7 @@ const start = async (cb) => {
     console.log(`🚀 Server ready at ${url}`);
 
     // Ready to use!
-    cb({ resolver, dbDriver, compiler, dbSchema, schema });
+    cb(null, { resolver, dbDriver, compiler, dbSchema, schema });
   });
 }
 

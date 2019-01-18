@@ -130,6 +130,11 @@ class Compiler {
    */
   getSchema() {
     let graphqlSchema = '';
+
+    // Validate tables
+    if (!Object.keys(this.dbSchema).length) return graphqlSchema;
+
+    // Build schema
     let graphqlSchemaTypes = [];
     let graphqlSchemaQueries = [];
     let graphqlSchemaMutations = [];
