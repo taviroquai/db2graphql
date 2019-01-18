@@ -57,10 +57,11 @@ class PostgreSQL {
    * @param {Object} pagination 
    */
   async page(tablename, pagination) {
+    const pk = this.getPrimaryKeyFromSchema(tablename);
     return await this.db(tablename)
-      .limit(pagination.limit)
+      .limit(pagination.limit || 25)
       .offset(pagination.skip)
-      .orderBy(pagination.orderby || 'id', pagination.ascend ? 'asc' : 'desc');
+      .orderBy(pagination.orderby || pk, pagination.ascend ? 'asc' : 'desc');
   }
 
   /**
@@ -82,6 +83,7 @@ class PostgreSQL {
    * @param {Object|null} pagination 
    */
   async pageWhere(tablename, where = null, pagination = null) {
+    const pk = this.getPrimaryKeyFromSchema(tablename);
     let query = this.db(tablename);
 
     // Add where condition
@@ -89,9 +91,9 @@ class PostgreSQL {
     
     // Add pagination
     if (pagination) {
-      query.limit(args.limit)
-      .offset(args.skip)
-      .orderBy(args.orderby || 'id', args.ascend ? 'asc' : 'desc');
+      query.limit(pagination.limit || 25)
+      .offset(pagination.skip)
+      .orderBy(pagination.orderby || pk, pagination.ascend ? 'asc' : 'desc');
     }
 
     // Run query
@@ -129,14 +131,15 @@ class PostgreSQL {
    * @param {Object} data 
    */
   async putItem(tablename, data) {
+    const pk = this.getPrimaryKeyFromSchema(tablename);
     let result = null;
-    if (!data.id) {
+    if (!data[pk]) {
       result = await this.db(tablename)
-        .returning('id')
+        .returning(pk)
         .insert(data);
     } else {
       result = await this.db.table(tablename)
-        .where('id', data.id)
+        .where(pk, data[pk])
         .update(data);
     }
     return result;
@@ -296,6 +299,32 @@ class PostgreSQL {
   }
 
   /**
+   * Get primary key constraint
+   * for a database table
+   * 
+   * @param {String} schemaname 
+   * @param {String} tablename 
+   */
+  async getPrimaryKey(schemaname, tablename) {
+    let pk = 'id';
+    const sql = `
+      SELECT 
+        kcu.column_name as columnname 
+      FROM 
+        information_schema.table_constraints AS tc 
+      JOIN information_schema.key_column_usage AS kcu
+        ON tc.constraint_name = kcu.constraint_name
+        AND tc.table_schema = kcu.table_schema
+      WHERE tc.constraint_type = 'PRIMARY KEY'
+        AND tc.table_schema = ?
+        AND tc.table_name = ?;
+    `;
+    let res = await this.query(sql, [schemaname, tablename]);
+    pk = res.rows.length ? res.rows[0].columnname : pk;
+    return pk;
+  }
+
+  /**
    * Helper to get table names
    * from current database schema
    */
@@ -314,6 +343,16 @@ class PostgreSQL {
   }
 
   /**
+   * Helper to get primary key for a table
+   * from current database schema
+   * 
+   * @param {String} tablename 
+   */
+  getPrimaryKeyFromSchema(tablename) {
+    return this.dbSchema[tablename].__pk;
+  }
+
+  /**
    * Build and return the database schema
    * Use exclude parameter to exclude indesired tables
    * 
@@ -328,7 +367,11 @@ class PostgreSQL {
     let tables = await this.getTables(schemaname, exclude);
     for (let i = 0; i < tables.length; i++) {
       let tablename = tables[i].name;
-      dbSchema[tablename] = { __reverse: []};
+      let pk = await this.getPrimaryKey(schemaname, tablename);
+      dbSchema[tablename] = {
+        __pk: pk,
+        __reverse: []
+      };
 
       // Get columns
       let columns = await this.getColumns(schemaname, tablename);
