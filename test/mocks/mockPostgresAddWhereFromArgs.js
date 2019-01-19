@@ -14,5 +14,8 @@ module.exports = {
         ['=', 'id', 1]
       ]
     }
+  },
+  argsEmpty: {
+    filter: {}
   }
 }

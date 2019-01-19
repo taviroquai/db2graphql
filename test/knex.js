@@ -23,6 +23,8 @@ const raw = {
     require('./mocks/mockPostgresGetForeignKeys'),
   'CiAgICAgIFNFTEVDVCAKICAgICAgICBrY3UuY29sdW1uX25hbWUgYXMgY29sdW1ubmFtZSAKICAgICAgRlJPTSAKICAgICAgICBpbmZvcm1hdGlvbl9zY2hlbWEudGFibGVfY29uc3RyYWludHMgQVMgdGMgCiAgICAgIEpPSU4gaW5mb3JtYXRpb25fc2NoZW1hLmtleV9jb2x1bW5fdXNhZ2UgQVMga2N1CiAgICAgICAgT04gdGMuY29uc3RyYWludF9uYW1lID0ga2N1LmNvbnN0cmFpbnRfbmFtZQogICAgICAgIEFORCB0Yy50YWJsZV9zY2hlbWEgPSBrY3UudGFibGVfc2NoZW1hCiAgICAgIFdIRVJFIHRjLmNvbnN0cmFpbnRfdHlwZSA9ICdQUklNQVJZIEtFWScKICAgICAgICBBTkQgdGMudGFibGVfc2NoZW1hID0gPwogICAgICAgIEFORCB0Yy50YWJsZV9uYW1lID0gPzsKICAgIA==':
     require('./mocks/mockPostgresGetPrimaryKey'),
+  'CiAgICAgIFNFTEVDVCB0YWJsZV9uYW1lIGFzIG5hbWUgCiAgICAgIEZST00gaW5mb3JtYXRpb25fc2NoZW1hLnRhYmxlcyAKICAgICAgV0hFUkUgdGFibGVfc2NoZW1hID0gPwogICAgICBBTkQgdGFibGVfbmFtZSBOT1QgSU4gKD8pCiAgICA=':
+    require('./mocks/mockPostgresGetTablesExclude')
 }
 
 const knexMock = () => {
@@ -30,7 +32,7 @@ const knexMock = () => {
     return mocks[arg1].result;
   }
   fn.raw = (sql, args) => {
-    //console.log('raw key', btoa(sql));
+    //console.log('raw key', sql, args, btoa(sql));
     return raw[btoa(sql)].result;
   }
   return fn

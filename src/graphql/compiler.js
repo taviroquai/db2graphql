@@ -47,15 +47,8 @@ class Compiler {
     })
 
     // Add reverse relation
-    let tables = this.dbDriver.getTablesFromSchema();
-    tables.map(t => {
-      let columns = this.dbDriver.getTableColumnsFromSchema(t);
-      columns.map(c => {
-        if (this.dbSchema[t][c].__foreign) {
-          let ftbl = this.dbSchema[t][c].__foreign.tablename;
-          if (ftbl === tablename) fields.push("  " + t + ": [" + utils.toCamelCase(t) + "]");
-        }
-      });
+    this.dbSchema[tablename].__reverse.map(r => {
+      fields.push("  " + r.ftablename + ": [" + utils.toCamelCase(r.ftablename) + "]");
     });
     return 'type ' + utils.toCamelCase(tablename) + " {\n" + fields.join(",\n") + "\n}";
   }
@@ -80,7 +73,7 @@ class Compiler {
    */
   mapDbTableToGraphqlQuery(tablename) {
     const typeName = utils.toCamelCase(tablename)
-    return '  getPage' + typeName 
+    return 'getPage' + typeName 
       + "(filter: String, pagination: String)"
       + ": Page" + typeName;
   }
@@ -96,7 +89,7 @@ class Compiler {
    */
   mapDbTableToGraphqlFirstOf(tablename) {
     const typeName = utils.toCamelCase(tablename);
-    return '  getFirstOf' + typeName 
+    return 'getFirstOf' + typeName 
       + "(filter: String, pagination: String)"
       + ": " + utils.toCamelCase(tablename);
   }
@@ -109,7 +102,7 @@ class Compiler {
    */
   mapDbTableToGraphqlMutation(tablename) {
     const typeName = utils.toCamelCase(tablename)
-    let string = '  putItem' + typeName;
+    let string = 'putItem' + typeName;
     let columns = this.dbDriver.getTableColumnsFromSchema(tablename);
     let vars = columns.map(col => {
       try {
@@ -141,9 +134,9 @@ class Compiler {
     for (let tablename in this.dbSchema) {
       graphqlSchemaTypes.push(this.mapDbTableToGraphqlType(tablename));
       graphqlSchemaTypes.push(this.mapDbTableToGraphqlPage(tablename));
-      graphqlSchemaQueries.push(this.mapDbTableToGraphqlQuery(tablename));
-      graphqlSchemaQueries.push(this.mapDbTableToGraphqlFirstOf(tablename));
-      graphqlSchemaMutations.push(this.mapDbTableToGraphqlMutation(tablename));
+      graphqlSchemaQueries.push("  "+this.mapDbTableToGraphqlQuery(tablename));
+      graphqlSchemaQueries.push("  "+this.mapDbTableToGraphqlFirstOf(tablename));
+      graphqlSchemaMutations.push("  "+this.mapDbTableToGraphqlMutation(tablename));
     }
     graphqlSchema += graphqlSchemaTypes.join("\n\n") + "\n\n";
     graphqlSchema += "type Query {\n" + graphqlSchemaQueries.join("\n") + "\n}\n\n";

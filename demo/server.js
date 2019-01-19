@@ -8,11 +8,13 @@ const start = async (cb) => {
   const connection = require('./connection.json');
   const dbDriver = new PostgreSQL(knex(connection));
   const dbSchema = await dbDriver.getSchema('public', connection.exclude);
+  console.log(dbSchema);
 
   // Create Graphql server
   const compiler = new Compiler(dbSchema, dbDriver);
   const resolver = new Resolver(dbSchema, dbDriver);
   const schema = compiler.getSchema();
+  console.log(schema);
   if (!schema) throw new Error('Error: empty schema');
 
   const server = new ApolloServer({

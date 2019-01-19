@@ -8,6 +8,9 @@ const query = {
 module.exports = {
   tablename: 'mockPostgresAddPaginationFromArgs',
   query,
+  argsEmpty: {
+    pagination: {}
+  },
   args: {
     pagination: {
       mockPostgresAddPaginationFromArgs: [

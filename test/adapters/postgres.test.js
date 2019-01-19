@@ -67,6 +67,11 @@ test('it should save one item and return it', async (done) => {
   schema.mockPostgresPutItemFoo.__pk = 'id';
   schema.mockPostgresPutItemFoo.__reverse = [];
   const adapter = new PostgreSQL(knex(), schema);
+
+  // Mock getPrimaryKeyFromSchema method
+  adapter.getPrimaryKeyFromSchema = (tablename, args) => {
+    return 'id';
+  }
   const mock = require('../mocks/mockPostgresPutItemFoo');
   let result = await adapter.putItem(mock.tablename, mock.argsInsert);
   expect(typeof result).toBe("object");
@@ -97,6 +102,7 @@ test('it should add where clause from args', async (done) => {
   const adapter = new PostgreSQL(knex(), schema);
   const mock = require('../mocks/mockPostgresAddWhereFromArgs');
   await adapter.addWhereFromArgs(mock.tablename, mock.query, mock.args);
+  await adapter.addWhereFromArgs(mock.tablename, mock.query, mock.argsEmpty);
   done();
 });
 
@@ -108,6 +114,7 @@ test('it should add pagination from args', async (done) => {
   const adapter = new PostgreSQL(knex(), schema);
   const mock = require('../mocks/mockPostgresAddPaginationFromArgs');
   await adapter.addPaginationFromArgs(mock.tablename, mock.query, mock.args);
+  await adapter.addPaginationFromArgs(mock.tablename, mock.query, mock.argsEmpty);
   done();
 });
 
@@ -152,6 +159,9 @@ test('it should load foreign records', async (done) => {
   };
   const adapter = new PostgreSQL(knex(), schema);
   const mock = require('../mocks/mockPostgresLoadForeignFoo');
+
+  // Mock firstOf method
+  adapter.firstOf = async (tablename, args) => ({});
   await adapter.loadForeign(mock.item, mock.tablename, mock.args);
   expect(mock.item).toEqual(mock.toEqual);
   done();
@@ -195,6 +205,11 @@ test('it should load reverse related records', async (done) => {
     }
   };
   const adapter = new PostgreSQL(knex(), schema);
+
+  // Mock page method
+  adapter.page = async (tablename, args) => {
+    return [{ id: 1}];
+  }
   const mock = require('../mocks/mockPostgresLoadReverseBar');
   await adapter.loadReverse(mock.item, mock.tablename, mock.args);
   done();
@@ -278,6 +293,14 @@ test('it should return the complete database schema as json', async (done) => {
   const adapter = new PostgreSQL(knex());
   const mock = require('../mocks/mockPostgresGetSchema');
   const result = await adapter.getSchema();
+  expect(result).toEqual(mock.result);
+  done();
+});
+
+test('it should return the complete database schema as json without excluded items', async (done) => {
+  const adapter = new PostgreSQL(knex());
+  const mock = require('../mocks/mockPostgresGetSchemaExclude');
+  const result = await adapter.getSchema('public', ['foo']);
   expect(result).toEqual(mock.result);
   done();
 });

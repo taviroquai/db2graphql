@@ -51,10 +51,8 @@ class PostgreSQL {
    */
   async page(tablename, args) {
     let query = this.db(tablename);
-    if (args) {
-      this.addWhereFromArgs(tablename, query, args);
-      this.addPaginationFromArgs(tablename, query, args);
-    }
+    (args) && this.addWhereFromArgs(tablename, query, args);
+    (args) && this.addPaginationFromArgs(tablename, query, args);
     const items = await query;
     return items;
   }
@@ -176,21 +174,18 @@ class PostgreSQL {
     if (!pagination) return;
 
     // Apply pagination to query
-    const pk = this.getPrimaryKeyFromSchema(tablename);
     for (let i = 0; i < pagination.length; i++) {
       const op = pagination[i][0];
       let value = pagination[i][1];
       switch(op) {
         case 'limit':
-          query.limit(value || 25);
+          query.limit(value);
           break;
         case 'offset':
-          query.offset(value || 0);
+          query.offset(value);
           break;
         case 'orderby':
-          value = value.split(' ');
-          if (!value.length === 2) throw new Error('Invalid orderby expression in:', pagination[i][0]);
-          query.orderBy(value[0] || pk, value[1] || 'asc');
+          query.orderBy(value);
           break;
       }
     }
@@ -256,7 +251,7 @@ class PostgreSQL {
    * 
    * @param {Array} exclude 
    */
-  getExcludeCondition(exclude = []) {
+  getExcludeCondition(exclude) {
     let sql = '';
     if (!exclude || exclude.length === 0) return sql;
     const placeholders = exclude.map(v => '?').join(',');
@@ -359,7 +354,7 @@ class PostgreSQL {
    * @param {String} tablename 
    */
   async getPrimaryKey(schemaname, tablename) {
-    let pk = 'id';
+    let pk = null;
     const sql = `
       SELECT 
         kcu.column_name as columnname 
@@ -373,8 +368,7 @@ class PostgreSQL {
         AND tc.table_name = ?;
     `;
     let res = await this.query(sql, [schemaname, tablename]);
-    pk = res.rows.length ? res.rows[0].columnname : pk;
-    return pk;
+    return res.rows.length ? res.rows[0].columnname : pk;
   }
 
   /**
