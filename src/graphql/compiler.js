@@ -31,7 +31,7 @@ class Compiler {
     let fields = columns.map(k => {
       try {
         return "  " + k + ': ' 
-          + this.dbDriver.mapDbColumnToGraphqlType(this.dbSchema, k, this.dbSchema[tablename][k]);
+          + this.dbDriver.mapDbColumnToGraphqlType(k, this.dbSchema[tablename][k]);
       } catch (err) {
         return '';
       }
@@ -114,7 +114,7 @@ class Compiler {
     let vars = columns.map(col => {
       try {
         return '    '+col+': ' 
-          + this.dbDriver.mapDbColumnToGraphqlType(this.dbSchema, col, this.dbSchema[tablename][col]);
+          + this.dbDriver.mapDbColumnToGraphqlType(col, this.dbSchema[tablename][col]);
       } catch (err) {
         return '';
       }

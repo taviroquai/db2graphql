@@ -1,5 +1,3 @@
-const knex = require('knex');
-
 /**
  * PostgreSQL dialect adapter
  */
@@ -8,25 +6,20 @@ class PostgreSQL {
   /**
    * Create a new adapter instance
    * 
-   * @param {Object} connection 
+   * @param {Object} db 
    */
-  constructor(connection) {
-    this.connection = connection;
-    this.db = knex(this.connection);
-    this.dbSchema = {};
-    process.on("exit", () => {
-      this.db.destroy();
-    })
+  constructor(db, dbSchema = {}) {
+    this.db = db;
+    this.dbSchema = dbSchema;
   }
 
   /**
    * Get Graphql type from database column data type
    * 
-   * @param {Object} dbSchema 
    * @param {String} columnname 
    * @param {Object} attrs 
    */
-  mapDbColumnToGraphqlType(dbSchema, columnname, attrs) {
+  mapDbColumnToGraphqlType(columnname, attrs) {
     let graphqlType = '';
     switch(attrs.data_type) {
       case 'boolean':
@@ -92,7 +85,7 @@ class PostgreSQL {
     let query = this.db(tablename);
     (args) && this.addWhereFromArgs(tablename, query, args);
     const item = await query.first();
-      
+
     // Load relations
     await this.loadForeign(item, tablename, args, depth);
     await this.loadReverse(item, tablename, args, depth);
@@ -112,13 +105,13 @@ class PostgreSQL {
     const pk = this.getPrimaryKeyFromSchema(tablename);
     let result = null;
     if (!data[pk]) {
-      result = await this.db.table(tablename)
-        .returning(pk)
-        .insert(data);
+      let query = this.db(tablename);
+      query.returning(pk)
+      result = await query.insert(data);
     } else {
-      result = await this.db.table(tablename)
-        .where(pk, data[pk])
-        .update(data);
+      let query = this.db(tablename)
+      query.where(pk, data[pk])
+      result = await query.update(data);
     }
     return result;
   }
@@ -399,7 +392,7 @@ class PostgreSQL {
    * @param {String} tablename 
    */
   getTableColumnsFromSchema(tablename) {
-    return Object.keys(this.dbSchema[tablename]).filter(c => c !== '__reverse');
+    return Object.keys(this.dbSchema[tablename]).filter(c => c !== '__reverse' && c !== '__pk');
   }
 
   /**

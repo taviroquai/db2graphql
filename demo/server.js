@@ -1,11 +1,12 @@
-const PostgreSQL = require('./adapters/postgres');
-const Compiler = require('./graphql/compiler');
-const Resolver = require('./graphql/resolver');
+const knex = require('knex');
+const PostgreSQL = require('../src/adapters/postgres');
+const Compiler = require('../src/graphql/compiler');
+const Resolver = require('../src/graphql/resolver');
 const { ApolloServer, gql } = require('apollo-server');
 
 const start = async (cb) => {
   const connection = require('./connection.json');
-  const dbDriver = new PostgreSQL(connection);
+  const dbDriver = new PostgreSQL(knex(connection));
   const dbSchema = await dbDriver.getSchema('public', connection.exclude);
 
   // Create Graphql server
@@ -24,7 +25,7 @@ const start = async (cb) => {
     console.log(`🚀 Server ready at ${url}`);
 
     // Ready to use!
-    cb(null, { resolver, dbDriver, compiler, dbSchema, schema });
+    cb({ resolver, dbDriver, compiler, dbSchema, schema });
   });
 }
 

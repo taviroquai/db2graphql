@@ -1,4 +1,4 @@
-const { start } = require('./demo_server');
+const { start } = require('./server');
   
 start(({ resolver }) => {
 

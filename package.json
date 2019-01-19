@@ -6,7 +6,8 @@
   "scripts": {
     "demo-db": "sudo psql -h localhost -U postgres -f ./migrations/001.sql db2graphql",
     "start": "node demo",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest",
+    "watch": "jest --watch --coverage"
   },
   "keywords": [],
   "author": "",
@@ -17,6 +18,14 @@
   },
   "devDependencies": {
     "apollo-server": "^2.3.1",
-    "graphql": "^14.1.1"
+    "graphql": "^14.1.1",
+    "jest": "^23.6.0"
+  },
+  "jest": {
+    "coveragePathIgnorePatterns": ["/node_modules/", "/cache/", "/demo/"],
+    "collectCoverageFrom": [
+      "src/**/*.{js,jsx}"
+    ],
+    "watchPathIgnorePatterns": ["/migrations/", "/demo/"]
   }
 }

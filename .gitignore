@@ -61,4 +61,4 @@ typings/
 .next
 
 # Local database connection
-connection.json
+demo/connection.json
