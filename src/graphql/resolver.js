@@ -18,11 +18,9 @@ class Resolver {
   /**
    * Creates a new Resolver instance
    * 
-   * @param {Object} dbSchema 
    * @param {Function} dbDriver 
    */
-  constructor(dbSchema, dbDriver) {
-    this.dbSchema = dbSchema;
+  constructor(dbDriver) {
     this.dbDriver = dbDriver;
 
     // Override hooks
@@ -41,8 +39,11 @@ class Resolver {
    * @param {Function} cb 
    */
   on(ns1, cb) {
-    if (!Object.keys(this.overrides).indexOf(ns1) === -1) {
+    if (Object.keys(this.overrides).indexOf(ns1) === -1) {
       throw new Error('Override not found: ' + ns1);
+    }
+    if (typeof cb !== 'function') {
+      throw new Error('Override must be a function. Found ' + typeof cb);
     }
     this.overrides[ns1] = cb;
   }
@@ -148,22 +149,11 @@ class Resolver {
   }
 
   /**
-   * Parse args for getPage API
+   * Parse args common
    * 
    * @param {Object} args 
    */
-  parseArgsGetPage(args) {
-    if (args.filter) args.filter = this.parseFilterExpression(args.filter);
-    if (args.pagination) args.pagination = this.parsePaginationExpression(args.pagination);
-    return args;
-  }
-
-  /**
-   * Parse args for getFirstOf API
-   * 
-   * @param {Object} args 
-   */
-  parseArgsGetFirstOf(args) {
+  parseArgsCommon(args) {
     if (args.filter) args.filter = this.parseFilterExpression(args.filter);
     if (args.pagination) args.pagination = this.parsePaginationExpression(args.pagination);
     return args;
@@ -177,8 +167,8 @@ class Resolver {
    */
   parseArgs(queryName, args) {
     switch(queryName) {
-      case 'getPage': return this.parseArgsGetPage(args);
-      case 'getFirstOf': return this.parseArgsGetFirstOf(args);
+      case 'getPage': return this.parseArgsCommon(args);
+      case 'getFirstOf': return this.parseArgsCommon(args);
       default: ;
     }
     return args;
