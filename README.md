@@ -122,8 +122,8 @@ $ git clone https://github.com/taviroquai/db2graphql.git
 $ cd db2graphql
 $ npm install
 $ psql -h localhost -U postgres -c "CREATE DATABASE db2graphql"
-$ cp connection.example.json connection.json
-# Edit connection.json
+$ cp demo/connection.example.json demo/connection.json
+# Edit demo/connection.json
 $ npm run demo-db
 $ npm run start
 ```
