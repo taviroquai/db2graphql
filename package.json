@@ -7,7 +7,7 @@
     "node": ">=8.0.0"
   },
   "scripts": {
-    "demo-db": "sudo psql -h localhost -U postgres -f ./migrations/001.sql db2graphql",
+    "demo-db": "sudo psql -h localhost -U postgres -f ./demo/database.sql db2graphql",
     "start": "node demo",
     "test": "jest",
     "watch": "jest --watch --coverage",
