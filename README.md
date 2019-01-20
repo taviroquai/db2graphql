@@ -27,12 +27,13 @@ Generates a Graphql schema and resolvers from an existing relational database
 ### Generate a Graphql schema from and existing relation database
 
 ```js
+const knex = require('knex');
 const PostgreSQL = require('./adapters/postgres');
 const Compiler = require('./graphql/compiler');
 
 const start = async (cb) => {
   const connection = require('./connection.json');
-  const dbDriver = new PostgreSQL(connection);
+  const dbDriver = new PostgreSQL(knex(connection));
   const dbSchema = await dbDriver.getSchema();
   
   // Generate Graphql schema
@@ -46,6 +47,7 @@ start().catch(err => console.log(err));
 
 ### Use built-in resolver for fast API prototyping
 ```js
+const knex = require('knex');
 const PostgreSQL = require('./adapters/postgres');
 const Compiler = require('./graphql/compiler');
 const Resolver = require('./graphql/resolver');
@@ -53,12 +55,12 @@ const { ApolloServer, gql } = require('apollo-server');
 
 const start = async () => {
   const connection = require('./connection.json');
-  const dbDriver = new PostgreSQL(connection);
+  const dbDriver = new PostgreSQL(knex(connection));
   const dbSchema = await dbDriver.getSchema();
 
   // Create Graphql server
   const compiler = new Compiler(dbSchema, dbDriver);
-  const resolver = new Resolver(dbSchema, dbDriver);
+  const resolver = new Resolver(dbDriver);
   const schema = compiler.getSchema();
   if (!schema) throw new Error('Error: empty schema');
 
@@ -85,9 +87,6 @@ resolver.on('getFirstOf', async (root, args, context) => {
     tablename,  // Access the requested table name
     db          // Access the Knex instance
   } = context.ioc;
-
-  // You can have direct access to knex instance
-  // const data = await db(tablename).where(args.field, args.value).first();
 
   // You can still use the built-in resolver method
   const data = await resolver.getFirstOf(tablename, args);
