@@ -185,7 +185,8 @@ class PostgreSQL {
           query.offset(value);
           break;
         case 'orderby':
-          query.orderBy(value);
+          value = value.split(' ')
+          query.orderBy(value[0], value[1]);
           break;
       }
     }

@@ -13,6 +13,27 @@ Generates a Graphql schema and resolvers from an existing relational database
 ## Demo
 [![IMAGE ALT TEXT HERE](demo/demo.png)](https://www.youtube.com/watch?v=HYwjcqekCuc)
 
+### Query example
+```gql
+query{
+  getFirstOfUsers(
+    filter: "users:id=2"
+    pagination: "posts:limit=10;orderby=title desc"
+  ) {
+    id
+    username
+    posts {
+      id
+      title
+      categories {
+        id
+        title
+      }
+    }
+  }
+}
+```
+
 ## Limitations/TODO
 * Only PostgreSQL supported
 * Better database types handling
