@@ -53,16 +53,32 @@ query{
 ### Generate a Graphql schema from an existing relational database
 ```js
 const knex = require('knex');
-const db2g = require('../src/db2g');
+const db2g = require('db2graphql');
 const api = new db2g(knex(require('./connection.json')));
 await api.connect();
 const schema = api.getSchema();
 ```
 
+**Example of file connection.json**
+```json
+{
+  "client": "pg",
+  "version": "10.6",
+  "debug": false,
+  "connection": {
+    "host" : "127.0.0.1",
+    "user" : "postgres",
+    "password" : "postgres",
+    "database" : "db2graphql"
+  },
+  "exclude": []
+}
+```
+
 ### Complete example with Apollo Server
 ```js
 const knex = require('knex');
-const db2g = require('../src/db2g');
+const db2g = require('db2graphql');
 const { ApolloServer, gql } = require('apollo-server');
 
 const start = async (cb) => {
@@ -102,7 +118,7 @@ api.override('getFirstOf', async (root, args, context) => {
 
 ### Example without database connection
 ```js
-const db2g = require('../src/db2g');
+const db2g = require('db2graphql');
 const api = new db2g();
 
 // Add a query and resolver
