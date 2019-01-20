@@ -13,9 +13,9 @@
     "watch": "jest --watch --coverage",
     "travis_test": "jest --maxWorkers=4"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": ["database", "graphql", "generate", "api"],
+  "author": "Marco Afonso",
+  "license": "MIT",
   "dependencies": {},
   "devDependencies": {
     "apollo-server": "^2.3.1",
