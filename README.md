@@ -9,6 +9,7 @@ Generates a Graphql schema and resolvers from an existing relational database
 * Converts an existing relational database (only PostgreSQL for now) schema to a JSON schema
 * Generates a Graphql schema (string) with few but convenient types, queries and mutations
 * Implements a generic Graphql resolver with a basic API for fast CRUD operations
+* Eager loading of related records based on foreign keys
 * Allows to add/override resolvers
 
 ## Demo
@@ -49,7 +50,7 @@ query{
 
 ## Usage
 
-### Generate a Graphql schema from and existing relation database
+### Generate a Graphql schema from an existing relational database
 ```js
 const knex = require('knex');
 const db2g = require('../src/db2g');
@@ -88,7 +89,7 @@ const start = async (cb) => {
 start();
 ```
 
-### Implement user-specific resolvers for app specific code
+### Implement specific resolvers
 ```js
 api.override('getFirstOf', async (root, args, context) => {
   const { resolver, tablename, db } = context.ioc;
@@ -110,7 +111,7 @@ api.addResolver('Query', 'getFoo', async (root, args, context) => {
   return true;
 });
 
-// Generate schema
+// Ready to generate schema
 const schema = api.getSchema();
 const resolvers = api.getResolvers();
 ```
