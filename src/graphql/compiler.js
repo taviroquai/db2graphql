@@ -18,6 +18,17 @@ class Compiler {
   constructor(dbSchema, dbDriver) {
     this.dbSchema = dbSchema;
     this.dbDriver = dbDriver;
+
+    // Hold schema
+    this.types = [];
+    this.queries = [];
+    this.mutations = [];
+    this.dbTypes = [];
+    this.dbQueries = [];
+    this.dbMutations = [];
+
+    // Cache schema
+    this.cache = '';
   }
 
   /**
@@ -118,30 +129,72 @@ class Compiler {
   }
 
   /**
+   * Adds a Graphql expression
+   * 
+   * @param {String} gql 
+   */
+  addType(gql) {
+    this.types.push(gql);
+  }
+
+  /**
+   * Adds a Graphql query
+   * 
+   * @param {String} gql 
+   */
+  addQuery(gql) {
+    this.queries.push("  " + gql);
+  }
+
+  /**
+   * Adds a Graphql mutation
+   * 
+   * @param {String} gql 
+   */
+  addMutation(gql) {
+    this.mutations.push("  " + gql);
+  }
+
+  /**
    * Generate a complete Graphql schema as a string.
    * Can be used as standalone.
    */
-  getSchema() {
-    let graphqlSchema = '';
+  getSchema(refresh = false, withDatabase = true) {
+    if (!this.cache || refresh) {
+      this.cache = '';
+      this.dbTypes.length = 0;
+      this.dbQueries.length = 0;
+      this.dbMutations.length = 0;
 
-    // Validate tables
-    if (!Object.keys(this.dbSchema).length) return graphqlSchema;
+      if (withDatabase) {
+        for (let tablename in this.dbSchema) {
+          this.dbTypes.push(this.mapDbTableToGraphqlType(tablename));
+          this.dbTypes.push(this.mapDbTableToGraphqlPage(tablename));
+          this.dbQueries.push("  "+this.mapDbTableToGraphqlQuery(tablename));
+          this.dbQueries.push("  "+this.mapDbTableToGraphqlFirstOf(tablename));
+          this.dbMutations.push("  "+this.mapDbTableToGraphqlMutation(tablename));
+        }
+      }
 
-    // Build schema
-    let graphqlSchemaTypes = [];
-    let graphqlSchemaQueries = [];
-    let graphqlSchemaMutations = [];
-    for (let tablename in this.dbSchema) {
-      graphqlSchemaTypes.push(this.mapDbTableToGraphqlType(tablename));
-      graphqlSchemaTypes.push(this.mapDbTableToGraphqlPage(tablename));
-      graphqlSchemaQueries.push("  "+this.mapDbTableToGraphqlQuery(tablename));
-      graphqlSchemaQueries.push("  "+this.mapDbTableToGraphqlFirstOf(tablename));
-      graphqlSchemaMutations.push("  "+this.mapDbTableToGraphqlMutation(tablename));
+      // Add to cache
+      if (this.types.length) this.cache += this.types.join("\n\n") + "\n\n";
+      if (this.dbTypes.length) this.cache += this.dbTypes.join("\n\n") + "\n\n";
+      
+      if (this.queries.length || this.dbQueries.length) {
+        this.cache += "type Query {\n"
+          + this.queries.join("\n")
+          + (withDatabase ? "\n" + this.dbQueries.join("\n") : '')
+          + "\n}\n\n";
+      }
+      if (this.mutations.length || this.dbMutations.length) {
+        this.cache += "type Mutation {\n"
+          + this.mutations.join("\n\n")
+          + (withDatabase ? "\n" + this.dbMutations.join("\n") : '')
+          + "\n}";
+      }
+      
     }
-    graphqlSchema += graphqlSchemaTypes.join("\n\n") + "\n\n";
-    graphqlSchema += "type Query {\n" + graphqlSchemaQueries.join("\n") + "\n}\n\n";
-    graphqlSchema += "type Mutation {\n" + graphqlSchemaMutations.join("\n\n") + "\n}";
-    return graphqlSchema;
+    return this.cache;
   }
 }
 

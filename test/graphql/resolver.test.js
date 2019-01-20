@@ -1,6 +1,4 @@
 const Resolver = require('../../src/graphql/resolver');
-const PostgreSQL = require('../../src/adapters/postgres');
-const knex = require('../knex');
 
 test('it should create a new Graphql resolver', () => {
   const resolver = new Resolver();
@@ -236,5 +234,45 @@ test('it should create a resolver overloaded with context ioc', async (done) => 
   expect(typeof result.Query).toEqual('object');
   expect(typeof result.Query.getFirstOfFoo).toEqual('function');
   expect(typeof result.Query.getPageFoo).toEqual('function');
+  done();
+});
+
+test('it should add user-made resorver', async (done) => {
+  const MockDriver = function() {
+    this.getTablesFromSchema = () => {
+      return ['foo'];
+    }
+  }
+  const dbDriver = new MockDriver();
+  const resolver1 = new Resolver(dbDriver);
+  const callback = async (root, args, context) => {
+    const { resolver } = context.ioc;
+    expect(resolver).toEqual(resolver1);
+    done();
+  };
+  resolver1.add('Query', 'getFoo', callback);
+  let result = resolver1.getResolvers();
+
+  // Assert
+  expect(typeof result).toEqual('object');
+  expect(typeof result.Query).toEqual('object');
+  expect(typeof result.Query.getFoo).toEqual('function');
+  await result.Query.getFoo(null, {}, {});
+});
+
+test('it should return without built-in resolver', async (done) => {
+  const MockDriver = function() {
+    this.getTablesFromSchema = () => {
+      return ['foo'];
+    }
+  }
+  const dbDriver = new MockDriver();
+  const resolver = new Resolver(dbDriver);
+  let result = resolver.getResolvers(false);
+
+  // Assert
+  expect(typeof result).toEqual('object');
+  expect(typeof result.Query).toEqual('object');
+  expect(typeof result.Query.getFirstOfFoo).toEqual('undefined');
   done();
 });

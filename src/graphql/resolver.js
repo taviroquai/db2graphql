@@ -23,6 +23,12 @@ class Resolver {
   constructor(dbDriver) {
     this.dbDriver = dbDriver;
 
+    // Holds resolvers object
+    this.resolvers = {
+      Query: {},
+      Mutation: {}
+    }
+
     // Override hooks
     this.overrides = {
       getPage: null,
@@ -195,36 +201,44 @@ class Resolver {
   }
 
   /**
+   * Adds a Graphql resolver
+   * 
+   * @param {String} namespace 
+   * @param {String} name 
+   * @param {Function} cb 
+   */
+  add(namespace, name, cb) {
+    this.resolvers[namespace][name] = async (root, args, context) => {
+      context.ioc = { resolver: this, db: this.dbDriver.db };
+      return await cb(root, args, context);
+    }
+  }
+
+  /**
    * Builds the Graphql resolvers object
    * by population with the current API methods
+   * 
+   * @param {Boolean} withDatabase
    */
-  getResolvers() {
-    let resolvers = {
-      Query: {},
-      Mutation: {}
-    }
+  getResolvers(withDatabase = true) {
 
     // Build resolvers
-    let tables = this.dbDriver.getTablesFromSchema();
-    for (let i = 0; i < tables.length; i++) {
-      let tablename = tables[i];
-      let queryName, typeName = utils.toCamelCase(tablename);
-
-      // Create getPage resolver
-      queryName = 'getPage' + typeName;
-      resolvers.Query[queryName] = this.contextOverload('getPage', tablename, this.getPage.bind(this));
-      
-      // Create getFirstOf resolver
-      queryName = 'getFirstOf' + typeName;
-      resolvers.Query[queryName] = this.contextOverload('getFirstOf', tablename, this.getFirstOf.bind(this));
-      
-      // Create putItem resolver
-      queryName = 'putItem' + typeName;
-      resolvers.Mutation[queryName] = this.contextOverload('putItem', tablename, this.putItem.bind(this));
+    if (withDatabase) {
+      let tables = this.dbDriver.getTablesFromSchema();
+      for (let i = 0; i < tables.length; i++) {
+        let tablename = tables[i];
+        let queryName, typeName = utils.toCamelCase(tablename);
+        queryName = 'getPage' + typeName;
+        this.resolvers.Query[queryName] = this.contextOverload('getPage', tablename, this.getPage.bind(this));
+        queryName = 'getFirstOf' + typeName;
+        this.resolvers.Query[queryName] = this.contextOverload('getFirstOf', tablename, this.getFirstOf.bind(this));
+        queryName = 'putItem' + typeName;
+        this.resolvers.Mutation[queryName] = this.contextOverload('putItem', tablename, this.putItem.bind(this));
+      }
     }
 
     // Return resolvers
-    return resolvers;
+    return this.resolvers;
   }
 }
 

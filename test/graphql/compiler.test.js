@@ -70,10 +70,41 @@ test('it should create a complete schema definition', () => {
   let compiler = new Compiler(mock.dbSchema, dbDriver);
   let result = compiler.getSchema();
   expect(result).toEqual(mock.result4);
-
-  // Test empty schema
-  dbDriver = new PostgreSQL(knex(), {});
-  compiler = new Compiler({}, dbDriver);
   result = compiler.getSchema();
+  expect(result).toEqual(mock.result4);
+});
+
+test('it should create an empty schema', () => {
+  let dbDriver = new PostgreSQL(knex(), {});
+  let compiler = new Compiler({}, dbDriver);
+  let result = compiler.getSchema();
   expect(result).toEqual('');
 });
+
+test('it should add a type definition', () => {
+  const mock = require('../mocks/mockCompiler');
+  let dbDriver = new PostgreSQL(knex(), mock.dbSchema);
+  let compiler = new Compiler(mock.dbSchema, dbDriver);
+  compiler.addType('type Foo { bar: Boolean }');
+  let result = compiler.getSchema(false, false);
+  expect(result).toEqual("type Foo { bar: Boolean }\n\n");
+});
+
+test('it should add a query definition', () => {
+  const mock = require('../mocks/mockCompiler');
+  let dbDriver = new PostgreSQL(knex(), mock.dbSchema);
+  let compiler = new Compiler(mock.dbSchema, dbDriver);
+  compiler.addQuery('getFoo: Foo')
+  let result = compiler.getSchema(false, false);
+  expect(result).toEqual("type Query {\n  getFoo: Foo\n}\n\n");
+});
+
+test('it should add a mutation definition', () => {
+  const mock = require('../mocks/mockCompiler');
+  let dbDriver = new PostgreSQL(knex(), mock.dbSchema);
+  let compiler = new Compiler(mock.dbSchema, dbDriver);
+  compiler.addMutation('putFoo(bar: Boolean): Foo');
+  let result = compiler.getSchema(false, false);
+  expect(result).toEqual("type Mutation {\n  putFoo(bar: Boolean): Foo\n}");
+});
+
