@@ -1,8 +1,11 @@
 {
   "name": "db2graphql",
-  "version": "1.0.0",
+  "version": "0.1.1",
   "description": "Generate Graphql schema based on existing relational database",
   "main": "index.js",
+  "engines": {
+    "node": ">=8.0.0"
+  },
   "scripts": {
     "demo-db": "sudo psql -h localhost -U postgres -f ./migrations/001.sql db2graphql",
     "start": "node demo",
