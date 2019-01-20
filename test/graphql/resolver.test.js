@@ -276,3 +276,10 @@ test('it should return without built-in resolver', async (done) => {
   expect(typeof result.Query.getFirstOfFoo).toEqual('undefined');
   done();
 });
+
+test('it should throw error on invalid resolver namespace', () => {
+  const resolver = new Resolver();
+  expect(() => {
+    resolver.add('foo', 'bar', () => {});
+  }).toThrow(new Error('Namespace must be one of: Query,Mutation'));
+});

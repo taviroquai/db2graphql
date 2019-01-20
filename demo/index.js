@@ -4,7 +4,7 @@ const { ApolloServer, gql } = require('apollo-server');
 
 const start = async (cb) => {
   const api = new db2g(knex(require('./connection.json')));
-  await api.init(); // Connects to database and load dependencies
+  await api.connect(); // Connects to database and extracts database schema
 
   // Example of how to add your own queries and resolvers
   api.addQuery('getFoo: Boolean');

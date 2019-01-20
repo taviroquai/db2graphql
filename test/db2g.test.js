@@ -81,13 +81,7 @@ const MockKnex = {
   }
 };
 
-test('it should throw error on missing knex connection', () => {
-  expect(() => {
-    new db2g();
-  }).toThrow(new Error('A Knex connection is missing'));
-});
-
-test('it should throw error on invalid database driver', () => {
+test('it should throw error on invalid database driver', async (done) => {
   const MockKnex1 = {
     connection: () => {
       return {
@@ -99,9 +93,13 @@ test('it should throw error on invalid database driver', () => {
       }
     }
   };
-  expect(() => {
-    new db2g(MockKnex1);
-  }).toThrow(new Error('Database driver not available'));
+  const api = new db2g(MockKnex1);
+  try {
+    await api.connect();
+  } catch (err) {
+    expect(err.message).toMatch('Database driver not available');
+  }
+  done();
 });
 
 test('it should create a new db2g instance', () => {
@@ -111,7 +109,7 @@ test('it should create a new db2g instance', () => {
 
 test('it should initialize without errors', async (done) => {
   const api = new db2g(MockKnex);
-  await api.init();
+  await api.connect();
   done();
 });
 
@@ -124,8 +122,9 @@ test('it should return database schema', async (done) => {
   done();
 });
 
-test('it should return graphql schema', async (done) => {
+test('it should return graphql schema from database', async (done) => {
   const api = new db2g(MockKnex);
+  await api.connect();
   let result = await api.getSchema();
   expect(result).toEqual(schema);
   result = await api.getSchema();
@@ -133,61 +132,9 @@ test('it should return graphql schema', async (done) => {
   done();
 });
 
-test('it should return the resolvers', async (done) => {
-  const api = new db2g(MockKnex);
-  const result = await api.getResolvers();
-  expect(typeof result).toEqual('object');
-  expect(typeof result.Query).toEqual('object');
-  expect(typeof result.Mutation).toEqual('object');
-  done();
-});
-
-test('it should add a graphql type', async (done) => {
-  const api = new db2g(MockKnex);
-  await api.init();
-  api.addType('type Foo { bar: Boolean }');
-  const result = await api.getSchema(false, false);
-  expect(result).toEqual("type Foo { bar: Boolean }\n\n");
-  done();
-});
-
-test('it should add a graphql query', async (done) => {
-  const api = new db2g(MockKnex);
-  await api.init();
-  api.addQuery('getFoo: Foo');
-  const result = await api.getSchema(false, false);
-  expect(result).toEqual("type Query {\n  getFoo: Foo\n}\n\n");
-  done();
-});
-
-test('it should add a graphql mutation', async (done) => {
-  const api = new db2g(MockKnex);
-  await api.init();
-  api.addMutation('putFoo(bar: Boolean): Foo');
-  const result = await api.getSchema(false, false);
-  expect(result).toEqual("type Mutation {\n  putFoo(bar: Boolean): Foo\n}");
-  done();
-});
-
-test('it should add a resolver', async (done) => {
-  const api = new db2g(MockKnex);
-  await api.init();
-  const resolver1 = (root, args, context) => {
-    const { resolver } = context.ioc;
-    expect(typeof resolver).toEqual('object');
-    done();
-  };
-  api.addResolver('Query', 'getFoo', resolver1);
-  const result = await api.getResolvers();
-  expect(typeof result).toEqual('object');
-  expect(typeof result.Query).toEqual('object');
-  expect(typeof result.Query.getFoo).toEqual('function');
-  await result.Query.getFoo(null, {}, {});
-});
-
 test('it should override a built-in resolver', async (done) => {
   const api = new db2g(MockKnex);
-  await api.init();
+  await api.connect();
   const resolver1 = (root, args, context) => {
     const { resolver, tablename } = context.ioc;
     expect(typeof resolver).toEqual('object');
@@ -200,4 +147,59 @@ test('it should override a built-in resolver', async (done) => {
   expect(typeof result.Query).toEqual('object');
   expect(typeof result.Query.getPageFoo).toEqual('function');
   await result.Query.getPageFoo(null, {}, {});
+});
+
+test('it should return graphql schema without connect to database', async (done) => {
+  const api = new db2g();
+  let result = await api.getSchema();
+  expect(result).toEqual('');
+  done();
+});
+
+test('it should return the resolvers without connect to database', async (done) => {
+  const api = new db2g();
+  const result = await api.getResolvers();
+  expect(typeof result).toEqual('object');
+  expect(typeof result.Query).toEqual('object');
+  expect(typeof result.Mutation).toEqual('object');
+  done();
+});
+
+test('it should add a graphql type without connect to database', async (done) => {
+  const api = new db2g();
+  api.addType('type Foo { bar: Boolean }');
+  const result = await api.getSchema();
+  expect(result).toEqual("type Foo { bar: Boolean }\n\n");
+  done();
+});
+
+test('it should add a graphql query without connect to database', async (done) => {
+  const api = new db2g();
+  api.addQuery('getFoo: Foo');
+  const result = await api.getSchema();
+  expect(result).toEqual("type Query {\n  getFoo: Foo\n}\n\n");
+  done();
+});
+
+test('it should add a graphql mutation', async (done) => {
+  const api = new db2g();
+  api.addMutation('putFoo(bar: Boolean): Foo');
+  const result = await api.getSchema();
+  expect(result).toEqual("type Mutation {\n  putFoo(bar: Boolean): Foo\n}");
+  done();
+});
+
+test('it should add a resolver', async (done) => {
+  const api = new db2g();
+  const resolver1 = (root, args, context) => {
+    const { resolver } = context.ioc;
+    expect(typeof resolver).toEqual('object');
+    done();
+  };
+  api.addResolver('Query', 'getFoo', resolver1);
+  const result = await api.getResolvers();
+  expect(typeof result).toEqual('object');
+  expect(typeof result.Query).toEqual('object');
+  expect(typeof result.Query.getFoo).toEqual('function');
+  await result.Query.getFoo(null, {}, {});
 });

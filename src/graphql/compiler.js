@@ -160,6 +160,7 @@ class Compiler {
    * Can be used as standalone.
    */
   getSchema(refresh = false, withDatabase = true) {
+    withDatabase = withDatabase && this.dbDriver;
     if (!this.cache || refresh) {
       this.cache = '';
       this.dbTypes.length = 0;

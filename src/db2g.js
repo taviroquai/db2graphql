@@ -20,19 +20,25 @@ class DB2Graphql {
     this.gqlSchema = null;
     this.compiler = null;
     this.resolver = null;
-    if (!this.connection) throw new Error('A Knex connection is missing');
-    const drivername = connection.connection().client.config.client;
-    if (!this.drivers[drivername]) throw new Error('Database driver not available');
-    this.dbDriver = new this.drivers[drivername](this.connection);
+    this.dbDriver = null;
+    this.compiler = new Compiler();
+    this.resolver = new Resolver();
   }
 
   /**
-   * Initializes dependencies
+   * Coonnects to database and builds the database schema
    */
-  async init() {
-    this.dbSchema = await this.dbDriver.getSchema('public', this.connection.exclude);
-    this.compiler = new Compiler(this.dbSchema, this.dbDriver);
-    this.resolver = new Resolver(this.dbDriver);
+  async connect() {
+    const config = this.connection.connection().client.config;
+    const drivername = config.client;
+    if (!this.drivers[drivername]) {
+      throw new Error('Database driver not available');
+    }
+    this.dbDriver = new this.drivers[drivername](this.connection);
+    this.dbSchema = await this.dbDriver.getSchema('public', config.exclude);
+    this.compiler.dbSchema = this.dbSchema;
+    this.compiler.dbDriver = this.dbDriver;
+    this.resolver.dbDriver = this.dbDriver;
   }
 
   /**
@@ -42,7 +48,7 @@ class DB2Graphql {
    * @param {Boolean} refresh 
    */
   async getDatabaseSchema(refresh = false) {
-    if (!this.dbSchema || refresh) await this.init();
+    if (!this.dbSchema || refresh) await this.connect();
     return this.dbSchema;
   }
 
@@ -54,7 +60,6 @@ class DB2Graphql {
    */
   async getSchema(refresh = false, withDatabase = true) {
     if (!this.gqlSchema || refresh) {
-      if (!this.compiler) await this.init();
       this.gqlSchema = this.compiler.getSchema(refresh, withDatabase);
     }
     return this.gqlSchema;
@@ -63,11 +68,9 @@ class DB2Graphql {
   /**
    * Get compiled resolvers
    * 
-   * @param {Boolean} refresh 
    * @param {Boolean} withDatabase
    */
-  async getResolvers(refresh = false, withDatabase = true) {
-    if (!this.resolver || refresh) await this.init();
+  async getResolvers(withDatabase = true) {
     return this.resolver.getResolvers(withDatabase);
   }
 

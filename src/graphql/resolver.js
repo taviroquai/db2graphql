@@ -208,8 +208,13 @@ class Resolver {
    * @param {Function} cb 
    */
   add(namespace, name, cb) {
+    const available = Object.keys(this.resolvers);
+    if (available.indexOf(namespace) === -1) {
+      throw new Error('Namespace must be one of: ' + available.join(','))
+    }
     this.resolvers[namespace][name] = async (root, args, context) => {
-      context.ioc = { resolver: this, db: this.dbDriver.db };
+      const db = this.dbDriver ? this.dbDriver.db : null;
+      context.ioc = { resolver: this, db };
       return await cb(root, args, context);
     }
   }
@@ -221,6 +226,7 @@ class Resolver {
    * @param {Boolean} withDatabase
    */
   getResolvers(withDatabase = true) {
+    withDatabase = withDatabase && this.dbDriver;
 
     // Build resolvers
     if (withDatabase) {
