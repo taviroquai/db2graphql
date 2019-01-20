@@ -2,6 +2,8 @@
 
 Generates a Graphql schema and resolvers from an existing relational database
 
+[![Build Status](https://travis-ci.org/taviroquai/db2graphql.svg?branch=master)](https://travis-ci.org/taviroquai/db2graphql)
+
 ## Features
 * Fully compatible with **express**, **koa**, **hapi** and **Apollo Server**
 * Converts an existing relational database (only PostgreSQL for now) schema to a JSON schema
