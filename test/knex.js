@@ -32,7 +32,6 @@ const knexMock = () => {
     return mocks[arg1].result;
   }
   fn.raw = (sql, args) => {
-    //console.log('raw key', sql, args, btoa(sql));
     return raw[btoa(sql)].result;
   }
   return fn

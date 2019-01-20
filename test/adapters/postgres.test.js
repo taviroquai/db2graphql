@@ -223,9 +223,11 @@ test('should build sql fragment condition', () => {
 
 test('it should return the database tables', async (done) => {
   const adapter = new PostgreSQL(knex());
-  const mock = require('../mocks/mockPostgresGetTables');
+
+  // Mock adapter query
+  adapter.query = async () => { return { rows: []} };
   const result = await adapter.getTables();
-  expect(result).toEqual(mock.toEqual);
+  expect(result).toEqual([]);
   done();
 });
 
@@ -247,9 +249,19 @@ test('it should return the table foreign keys', async (done) => {
 
 test('it should return the table primary key', async (done) => {
   const adapter = new PostgreSQL(knex());
-  const mock = require('../mocks/mockPostgresGetPrimaryKey');
-  const result = await adapter.getPrimaryKey(mock.schemaname, mock.tablename);
+  let mock = require('../mocks/mockPostgresGetPrimaryKey');
+  let result = await adapter.getPrimaryKey(mock.schemaname, mock.tablename);
   expect(result).toEqual(mock.toEqual);
+  done();
+});
+
+test('it should return no primary key', async (done) => {
+  const adapter = new PostgreSQL(knex());
+
+  // Mock adapter query
+  adapter.query = async () => { return { rows: []} };
+  let result = await adapter.getPrimaryKey();
+  expect(result).toEqual(null);
   done();
 });
 

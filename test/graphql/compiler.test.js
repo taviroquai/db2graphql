@@ -66,8 +66,14 @@ test('invalid field on create putItem definition', () => {
 
 test('it should create a complete schema definition', () => {
   const mock = require('../mocks/mockCompiler');
-  const dbDriver = new PostgreSQL(knex(), mock.dbSchema);
-  const compiler = new Compiler(mock.dbSchema, dbDriver);
+  let dbDriver = new PostgreSQL(knex(), mock.dbSchema);
+  let compiler = new Compiler(mock.dbSchema, dbDriver);
   let result = compiler.getSchema();
   expect(result).toEqual(mock.result4);
+
+  // Test empty schema
+  dbDriver = new PostgreSQL(knex(), {});
+  compiler = new Compiler({}, dbDriver);
+  result = compiler.getSchema();
+  expect(result).toEqual('');
 });
