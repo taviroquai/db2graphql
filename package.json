@@ -16,20 +16,26 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "dependencies": {
-    "knex": "^0.16.3",
-    "pg": "^7.8.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "apollo-server": "^2.3.1",
     "graphql": "^14.1.1",
-    "jest": "^23.6.0"
+    "jest": "^23.6.0",
+    "knex": "^0.16.3",
+    "pg": "^7.8.0"
   },
   "jest": {
-    "coveragePathIgnorePatterns": ["/node_modules/", "/cache/", "/demo/"],
+    "coveragePathIgnorePatterns": [
+      "/node_modules/",
+      "/cache/",
+      "/demo/"
+    ],
     "collectCoverageFrom": [
       "src/**/*.{js,jsx}"
     ],
-    "watchPathIgnorePatterns": ["/migrations/", "/demo/"]
+    "watchPathIgnorePatterns": [
+      "/migrations/",
+      "/demo/"
+    ]
   }
 }
