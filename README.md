@@ -10,6 +10,9 @@ Generates a Graphql schema and resolvers from an existing relational database
 * Generates a Graphql schema (string) with few but convenient types, queries and mutations
 * Implements a generic Graphql resolver with a basic API for fast CRUD operations
 
+## Demo
+[![IMAGE ALT TEXT HERE](demo/demo.png)](https://www.youtube.com/watch?v=HYwjcqekCuc)
+
 ## Limitations/TODO
 * Only PostgreSQL supported
 * Better database types handling
