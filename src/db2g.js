@@ -58,7 +58,7 @@ class DB2Graphql {
    * 
    * @param {Boolean} refresh 
    */
-  async getSchema(refresh = false, withDatabase = true) {
+  getSchema(refresh = false, withDatabase = true) {
     if (!this.gqlSchema || refresh) {
       this.gqlSchema = this.compiler.getSchema(refresh, withDatabase);
     }
@@ -70,7 +70,7 @@ class DB2Graphql {
    * 
    * @param {Boolean} withDatabase
    */
-  async getResolvers(withDatabase = true) {
+  getResolvers(withDatabase = true) {
     return this.resolver.getResolvers(withDatabase);
   }
 
