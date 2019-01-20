@@ -1,6 +1,6 @@
 {
   "name": "db2graphql",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Generate Graphql schema based on existing relational database",
   "main": "index.js",
   "engines": {
@@ -13,7 +13,12 @@
     "watch": "jest --watch --coverage",
     "travis_test": "jest --maxWorkers=4"
   },
-  "keywords": ["database", "graphql", "generate", "api"],
+  "keywords": [
+    "database",
+    "graphql",
+    "generate",
+    "api"
+  ],
   "author": "Marco Afonso",
   "license": "MIT",
   "dependencies": {},
