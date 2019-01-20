@@ -13,7 +13,7 @@ Generates a Graphql schema and resolvers from an existing relational database
 * Allows to add/override resolvers
 
 ## Demo
-[![IMAGE ALT TEXT HERE](demo/demo.png)](https://www.youtube.com/watch?v=HYwjcqekCuc)
+[![link to youtube video](demo/demo.png)](https://www.youtube.com/watch?v=HYwjcqekCuc)
 
 ### Query example
 ```gql
