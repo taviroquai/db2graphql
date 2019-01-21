@@ -11,7 +11,7 @@
     "start": "node demo",
     "test": "jest",
     "watch": "jest --watch --coverage",
-    "travis_test": "jest --maxWorkers=4"
+    "travis_test": "jest --maxWorkers=4 --coverage --coverageReporters=text-lcov | coveralls"
   },
   "keywords": [
     "database",
@@ -24,6 +24,7 @@
   "dependencies": {},
   "devDependencies": {
     "apollo-server": "^2.3.1",
+    "coveralls": "^3.0.2",
     "graphql": "^14.1.1",
     "jest": "^23.6.0",
     "knex": "^0.16.3",
