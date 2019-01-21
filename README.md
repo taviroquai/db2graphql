@@ -3,7 +3,6 @@
 Generates a Graphql schema and resolvers from an existing relational database
 
 [![Build Status](https://travis-ci.org/taviroquai/db2graphql.svg?branch=master)](https://travis-ci.org/taviroquai/db2graphql)
-
 [![Coverage Status](https://coveralls.io/repos/github/taviroquai/db2graphql/badge.svg?branch=master)](https://coveralls.io/github/taviroquai/db2graphql?branch=master)
 
 ## Features
