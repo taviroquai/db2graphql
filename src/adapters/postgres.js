@@ -49,11 +49,12 @@ class PostgreSQL {
    * @param {String} tablename 
    * @param {Object} pagination 
    */
-  async page(tablename, args) {
+  async page(tablename, args, depth = 1) {
     let query = this.db(tablename);
     (args) && this.addWhereFromArgs(tablename, query, args);
     (args) && this.addPaginationFromArgs(tablename, query, args);
     const items = await query;
+    await this.loadReverseItems(items, tablename, args, depth+1);
     return items;
   }
 
@@ -85,8 +86,8 @@ class PostgreSQL {
     const item = await query.first();
 
     // Load relations
-    await this.loadForeign(item, tablename, args, depth);
-    await this.loadReverse(item, tablename, args, depth);
+    await this.loadForeign(item, tablename, args, depth+1);
+    await this.loadReverseItems([item], tablename, args, depth+1);
 
     // Return item
     return item; 
@@ -214,11 +215,16 @@ class PostgreSQL {
    */
   async loadForeign(item, tablename, args, depth = 1) {
     if (depth > 3) return;
+    const pk = this.getPrimaryKeyFromSchema(tablename);
     let columns = this.getTableColumnsFromSchema(tablename);
     for (let i = 0; i < columns.length; i++) {
       let column = this.dbSchema[tablename][columns[i]];
       if (column.__foreign) {
-        item[column.__foreign.tablename] = await this.firstOf(column.__foreign.tablename, args, depth+1);
+        let args2 = Object.assign([], args);
+        const filter = [['=', column.__foreign.columnname, item[pk]]];
+        args2.filter[column.__foreign.tablename] = filter;
+        const related = await this.firstOf(column.__foreign.tablename, args2, depth+1);
+        item[column.__foreign.tablename] = related;
       }
     }
   }
@@ -226,22 +232,35 @@ class PostgreSQL {
   /**
    * Eager loading of inverse related records
    * Limited by max depth
+   * TODO: fix this mess!!!
    * 
-   * @param {Object} item 
+   * @param {Array} items 
    * @param {String} tablename 
-   * @param {object} args
+   * @param {Object} args 
    * @param {Number} depth 
    */
-  async loadReverse(item, tablename, args, depth = 1) {
+  async loadReverseItems(items, tablename, args, depth = 1, exclude = []) {
     if (depth > 3) return;
+    const pk = this.getPrimaryKeyFromSchema(tablename);
+    const indexed = {};
+    const ids = items.map(i => {
+      indexed[i[pk]] = i;
+      return i[pk];
+    }).join(',');
     for (let i = 0; i < this.dbSchema[tablename].__reverse.length; i++) {
       let relation = this.dbSchema[tablename].__reverse[i];
-      let argsCondition = Object.assign({ filter: {}}, args);
-      argsCondition.filter[relation.ftablename] = [['=', relation.fcolumnname, item[relation.columnname]]];
-      item[relation.ftablename] = await this.page(relation.ftablename, argsCondition);
-      for (let j = 0; j < item[relation.ftablename].length; j++) {
-        await this.loadForeign(item[relation.ftablename][j], relation.ftablename, args, depth+1);
-        await this.loadReverse(item[relation.ftablename][j], relation.ftablename, args, depth+1);
+      let argsCondition = { filter: {}, pagination: args.pagination };
+      argsCondition.filter[relation.ftablename] = [['#', relation.fcolumnname, ids]];
+      let results = await this.page(relation.ftablename, argsCondition);
+      for (let j = 0; j < results.length; j++) {
+        const related = results[j];
+        const index = related[relation.fcolumnname];
+        if (!indexed[index][relation.ftablename]) {
+          indexed[index][relation.ftablename] = { total: results.length, items: [] };
+        }
+        indexed[index][relation.ftablename].items.push(related);
+        await this.loadForeign(related, relation.ftablename, args, depth+1);
+        await this.loadReverseItems([related], relation.ftablename, args, depth+1);
       }
     }
   }

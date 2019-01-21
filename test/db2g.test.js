@@ -3,7 +3,7 @@ const db2g = require('../src/db2g');
 const dbSchema = {"bar": {"__pk": "foo_id", "__reverse": [], "foo_id": {"__foreign": {"columnname": "id", "schemaname": "public", "tablename": "foo"}, "data_type": "bigint", "is_nullable": undefined, "name": "foo_id"}, "id": {"data_type":"bigint", "is_nullable": undefined, "name": "id"}}, "foo": {"__pk": null, "__reverse": [{"columnname": "id", "fcolumnname": "foo_id", "fschemaname": undefined, "ftablename": "bar"}], "id": {"data_type": "bigint", "is_nullable":undefined, "name": "id"}}};
 const schema = `type Foo {
   id: Int,
-  bar: [Bar]
+  bar: PageBar
 }
 
 type PageFoo{

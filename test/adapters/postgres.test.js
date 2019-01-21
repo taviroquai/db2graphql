@@ -32,11 +32,16 @@ test('translate database data type tp graphql native type', () => {
 });
 
 test('it should return a page of items', async (done) => {
-  const adapter = new PostgreSQL(knex());
+  const schema = {
+    mockPostgresPageFoo: []
+  };
+  schema.mockPostgresPageFoo.__pk = 'id';
+  schema.mockPostgresPageFoo.__reverse = [];
+  const adapter = new PostgreSQL(knex(), schema);
   const mock = require('../mocks/mockPostgresPageFoo');
   const result = await adapter.page(mock.tablename, mock.args);
   expect(typeof result).toBe("object");
-  expect(Array.isArray(result.rows)).toBe(true);
+  expect(Array.isArray(result)).toBe(true);
   done();
 });
 
@@ -211,7 +216,7 @@ test('it should load reverse related records', async (done) => {
     return [{ id: 1}];
   }
   const mock = require('../mocks/mockPostgresLoadReverseBar');
-  await adapter.loadReverse(mock.item, mock.tablename, mock.args);
+  await adapter.loadReverseItems([mock.item], mock.tablename, mock.args);
   done();
 });
 

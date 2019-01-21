@@ -59,7 +59,7 @@ class Compiler {
 
     // Add reverse relation
     this.dbSchema[tablename].__reverse.map(r => {
-      fields.push("  " + r.ftablename + ": [" + utils.toCamelCase(r.ftablename) + "]");
+      fields.push("  " + r.ftablename + ": Page" + utils.toCamelCase(r.ftablename));
     });
     return 'type ' + utils.toCamelCase(tablename) + " {\n" + fields.join(",\n") + "\n}";
   }
