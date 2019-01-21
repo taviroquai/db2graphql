@@ -41,8 +41,8 @@ query{
 * Only PostgreSQL supported
 * Better database types handling
 * Better database queries optimization
-* Create tests
-* Create an NPM module
+* ~~Create tests~~
+* ~~Create an NPM module~~
 * Move to TypeScript
 * Add more and improve convenient API methods. Currently, only:
     1. getPage
