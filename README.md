@@ -9,7 +9,7 @@ Generates a Graphql schema and resolvers from an existing relational database
 * Fully compatible with **express**, **koa**, **hapi** and **Apollo Server**
 * Converts an existing relational database (only PostgreSQL for now) schema to a JSON schema
 * Generates a Graphql schema (string) with few but convenient types, queries and mutations
-* Implements a generic Graphql resolver with a basic API for fast CRUD operations
+* Implements a generic Graphql resolver ready for API prototyping
 * Eager loading of related records based on foreign keys
 * Allows to add/override resolvers
 
