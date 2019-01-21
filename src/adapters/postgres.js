@@ -1,4 +1,9 @@
 /**
+ * Available types
+ */
+const availableTypes = ['string', 'integer', 'bigInteger', 'text', 'float', 'decimal', 'boolean', 'date', 'datetime', 'time', 'timestamp', 'binary', 'json', 'jsonb', 'uuid'];
+
+/**
  * PostgreSQL dialect adapter
  */
 class PostgreSQL {
@@ -11,6 +16,13 @@ class PostgreSQL {
   constructor(db, dbSchema = {}) {
     this.db = db;
     this.dbSchema = dbSchema;
+  }
+
+  /**
+   * Get available types from the RDMS
+   */
+  getAvailableTypes() {
+    return availableTypes;
   }
 
   /**

@@ -7,6 +7,7 @@ const start = async (cb) => {
   /****************************************************** */
   const api = new db2g(knex(require('./connection.json')));
   await api.connect(); // Connects to database and extracts database schema
+  api.withBuilder();
   const schema = api.getSchema();
   const resolvers = api.getResolvers();
   /****************************************************** */

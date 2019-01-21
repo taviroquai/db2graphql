@@ -123,6 +123,84 @@ class DB2Graphql {
   override(name, cb) {
     this.resolver.on(name, cb);
   }
+
+  /**
+   * Adds the schema builder queries
+   */
+  withBuilder() {
+
+    // Add getSchema
+    this.addQuery('getSchema: String');
+    this.addResolver('Query', 'getSchema', async (root, args, context) => {
+      return JSON.stringify(this.dbSchema);
+    });
+
+    // Add addSchemaColumn
+    const queryAlterColumn = `
+addSchemaColumn(
+  tablename: String!
+  columnname: String!
+  type: String!
+): Boolean
+    `;
+    this.addQuery(queryAlterColumn);
+    this.addResolver('Query', 'addSchemaColumn', async (root, args, context) => {
+      const { resolver, db } = context.ioc;
+      const types = resolver.dbDriver.getAvailableTypes();
+      if (types.indexOf(args.type) === -1) return false;
+      await db.schema.table(args.tablename, table => {
+        table[args.type](args.columnname);
+      });
+      return true;
+    });
+
+    // Add dropSchemaColumn
+    const queryDropColumn = `
+dropSchemaColumn(
+  tablename: String!
+  columnname: String!
+): Boolean
+`;
+    this.addQuery(queryDropColumn);
+    this.addResolver('Query', 'dropSchemaColumn', async (root, args, context) => {
+      const { db } = context.ioc;
+      await db.schema.table(args.tablename, table => {
+        table.dropColumn(args.columnname);
+      });
+      return true;
+    });
+
+    // Add addSchemaTable
+    const queryAddTable = `
+addSchemaTable(
+  tablename: String!
+  primary: String!
+  type: String!
+  increments: Boolean
+): Boolean
+`;
+    this.addQuery(queryAddTable);
+    this.addResolver('Query', 'addSchemaTable', async (root, args, context) => {
+      const { resolver, db } = context.ioc;
+      const types = resolver.dbDriver.getAvailableTypes();
+      if (types.indexOf(args.type) === -1) return false;
+      await db.schema.createTable(args.tablename, (table) => {
+        if (args.increments) table.increments(args.primary);
+        else table[args.type](args.primary).primary();
+      })
+      return true;
+    });
+
+    // Add dropSchemaTable
+    const dropSchemaTable = 'dropSchemaTable(tablename: String!): Boolean';
+    this.addQuery(dropSchemaTable);
+    this.addResolver('Query', 'dropSchemaTable', async (root, args, context) => {
+      const { db } = context.ioc;
+      await db.schema.dropTable(args.tablename);
+      return true;
+    });
+
+  }
 }
 
 exports.PostgreSQL = PostgreSQL;
