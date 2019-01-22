@@ -21,7 +21,7 @@ class PostgreSQL {
   /**
    * Get available types from the RDMS
    */
-  getAvailableTypes() {
+  static getAvailableTypes() {
     return availableTypes;
   }
 

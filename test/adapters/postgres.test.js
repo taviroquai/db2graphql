@@ -321,3 +321,8 @@ test('it should return the complete database schema as json without excluded ite
   expect(result).toEqual(mock.result);
   done();
 });
+
+test('it should return the available database column types', () => {
+  const result = PostgreSQL.getAvailableTypes();
+  expect(result instanceof Array).toEqual(true);
+});

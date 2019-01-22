@@ -1,4 +1,5 @@
 const db2g = require('../src/db2g');
+const Postgres = require('../src/adapters/postgres');
 
 const dbSchema = {"bar": {"__pk": "foo_id", "__reverse": [], "foo_id": {"__foreign": {"columnname": "id", "schemaname": "public", "tablename": "foo"}, "data_type": "bigint", "is_nullable": undefined, "name": "foo_id"}, "id": {"data_type":"bigint", "is_nullable": undefined, "name": "id"}}, "foo": {"__pk": null, "__reverse": [{"columnname": "id", "fcolumnname": "foo_id", "fschemaname": undefined, "ftablename": "bar"}], "id": {"data_type": "bigint", "is_nullable":undefined, "name": "id"}}};
 const schema = `type Foo {
@@ -43,10 +44,30 @@ type Mutation {
   ): Bar
 }`;
 
+const MockKnexFluidInterface = async (name, cb) => {
+  const fns = {
+    primary: () => fns,
+    increments: () =>fns,
+    dropColumn: () => fns,
+    foreign: () => fns,
+    references: () => fns
+  };
+  const types = Postgres.getAvailableTypes();
+  types.map(t => {
+    fns[t] = () => fns;
+  });
+  cb(fns);
+};
+
 const config = {
   client: 'pg'
 };
 const MockKnex = {
+  schema: {
+    createTable: MockKnexFluidInterface,
+    dropTable: async () => {},
+    table: MockKnexFluidInterface
+  },
   connection: () => {
     return {
       client: {
@@ -202,4 +223,49 @@ test('it should add a resolver', async (done) => {
   expect(typeof result.Query).toEqual('object');
   expect(typeof result.Query.getFoo).toEqual('function');
   await result.Query.getFoo(null, {}, {});
+});
+
+
+test('it should add the builder', async (done) => {
+  const api = new db2g();
+  api.withBuilder();
+  const result = api.getResolvers();
+  expect(typeof result).toEqual('object');
+  expect(typeof result.Query).toEqual('object');
+  expect(typeof result.Query.getSchema).toEqual('function');
+  expect(typeof result.Query.addSchemaTable).toEqual('function');
+  expect(typeof result.Query.dropSchemaTable).toEqual('function');
+  expect(typeof result.Query.addSchemaColumn).toEqual('function');
+  expect(typeof result.Query.dropSchemaColumn).toEqual('function');
+  done();
+});
+
+test('it should run builder queries without errors', async (done) => {
+  const api = new db2g(MockKnex);
+  await api.connect();
+  api.withBuilder();
+  const resolvers = api.getResolvers();
+  await resolvers.Query.getSchema(null, {}, {});
+
+  let result = await resolvers.Query.addSchemaTable(null, {}, {});
+  expect(result).toEqual(false);
+  result = await resolvers.Query.addSchemaTable(null, { type: "integer" }, {});
+  expect(result).toEqual(true);
+  result = await resolvers.Query.addSchemaTable(null, { type: "integer", increments: true }, {});
+  expect(result).toEqual(true);
+
+  result = await resolvers.Query.dropSchemaTable(null, {}, {});
+  expect(result).toEqual(true);
+
+  result = await resolvers.Query.addSchemaColumn(null, {}, {});
+  expect(result).toEqual(false);
+  result = await resolvers.Query.addSchemaColumn(null, { type: "integer" }, {});
+  expect(result).toEqual(true);
+  result = await resolvers.Query.addSchemaColumn(null, { type: "integer", foreign: "foo.bar" }, {});
+  expect(result).toEqual(true);
+
+
+  result = await resolvers.Query.dropSchemaColumn(null, {}, {});
+  expect(result).toEqual(true);
+  done();
 });

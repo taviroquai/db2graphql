@@ -141,15 +141,19 @@ addSchemaColumn(
   tablename: String!
   columnname: String!
   type: String!
+  foreign: String
 ): Boolean
     `;
     this.addQuery(queryAlterColumn);
     this.addResolver('Query', 'addSchemaColumn', async (root, args, context) => {
       const { resolver, db } = context.ioc;
-      const types = resolver.dbDriver.getAvailableTypes();
+      const types = resolver.dbDriver.constructor.getAvailableTypes();
       if (types.indexOf(args.type) === -1) return false;
       await db.schema.table(args.tablename, table => {
         table[args.type](args.columnname);
+        if (args.foreign) {
+          table.foreign(args.columnname).references(args.foreign)
+        }
       });
       return true;
     });
@@ -182,7 +186,7 @@ addSchemaTable(
     this.addQuery(queryAddTable);
     this.addResolver('Query', 'addSchemaTable', async (root, args, context) => {
       const { resolver, db } = context.ioc;
-      const types = resolver.dbDriver.getAvailableTypes();
+      const types = resolver.dbDriver.constructor.getAvailableTypes();
       if (types.indexOf(args.type) === -1) return false;
       await db.schema.createTable(args.tablename, (table) => {
         if (args.increments) table.increments(args.primary);
