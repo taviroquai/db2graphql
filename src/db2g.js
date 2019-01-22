@@ -130,20 +130,22 @@ class DB2Graphql {
   withBuilder() {
 
     // Add getSchema
-    this.addQuery('getSchema: String');
+    this.addQuery(`
+  getSchema: String
+`);
     this.addResolver('Query', 'getSchema', async (root, args, context) => {
       return JSON.stringify(this.dbSchema);
     });
 
     // Add addSchemaColumn
     const queryAlterColumn = `
-addSchemaColumn(
-  tablename: String!
-  columnname: String!
-  type: String!
-  foreign: String
-): Boolean
-    `;
+  addSchemaColumn(
+    tablename: String!
+    columnname: String!
+    type: String!
+    foreign: String
+  ): Boolean
+`;
     this.addQuery(queryAlterColumn);
     this.addResolver('Query', 'addSchemaColumn', async (root, args, context) => {
       const { resolver, db } = context.ioc;
@@ -160,10 +162,10 @@ addSchemaColumn(
 
     // Add dropSchemaColumn
     const queryDropColumn = `
-dropSchemaColumn(
-  tablename: String!
-  columnname: String!
-): Boolean
+  dropSchemaColumn(
+    tablename: String!
+    columnname: String!
+  ): Boolean
 `;
     this.addQuery(queryDropColumn);
     this.addResolver('Query', 'dropSchemaColumn', async (root, args, context) => {
@@ -176,12 +178,12 @@ dropSchemaColumn(
 
     // Add addSchemaTable
     const queryAddTable = `
-addSchemaTable(
-  tablename: String!
-  primary: String!
-  type: String!
-  increments: Boolean
-): Boolean
+  addSchemaTable(
+    tablename: String!
+    primary: String!
+    type: String!
+    increments: Boolean
+  ): Boolean
 `;
     this.addQuery(queryAddTable);
     this.addResolver('Query', 'addSchemaTable', async (root, args, context) => {
