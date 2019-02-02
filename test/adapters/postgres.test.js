@@ -299,43 +299,17 @@ test('it should return the complete database schema as json', async (done) => {
   done();
 });
 
-xtest('it should return the complete database schema as json without excluded items', async (done) => {
+test('it should return the complete database schema as json without excluded items', async (done) => {
   
   // Fixtures
   const expected = {
     "bar": {
       "__pk": "foo",
       "__reverse": [],
-      "bar": {
-        "__foreign": {
-          "columnname": "bar",
-          "schemaname": "public",
-          "tablename": "foo"
-        },
-        "data_type": "integer",
-        "is_nullable": "YES",
-        "name": "bar"
-      },
       "foo": {
         "data_type": "integer",
         "is_nullable": "NO",
         "name": "foo"
-      }
-    },
-    "foo": {
-      "__pk": "bar",
-      "__reverse": [
-        {
-          "columnname": "bar",
-          "fcolumnname": "bar",
-          "fschemaname": "public",
-          "ftablename": "bar"
-        }
-      ],
-      "bar": {
-        "data_type": "integer",
-        "is_nullable": "NO",
-        "name": "bar"
       }
     }
   };
@@ -348,8 +322,6 @@ xtest('it should return the complete database schema as json without excluded it
   });
   await db.schema.createTable('bar', (table) => {
     table.integer('foo').primary();
-    table.integer('bar');
-    table.foreign('bar').references('foo.bar')
   });
 
   const adapter = new PostgreSQL(db);
@@ -358,9 +330,39 @@ xtest('it should return the complete database schema as json without excluded it
   done();
 });
 
-/*
-TODO: fix this test
-test('it should load foreign records', async (done) => {
+test('it should load items from table using records ids', async (done) => {
+  
+  // Fixtures
+  const expected = [
+    { foo: 1 },
+    { foo: 2 }
+  ];
+
+  // Setup database
+  await db.schema.dropTableIfExists('bar');
+  await db.schema.createTable('bar', (table) => {
+    table.integer('foo').primary();
+  });
+  await db('bar').insert({ foo: 1 });
+  await db('bar').insert({ foo: 2 });
+
+  const adapter = new PostgreSQL(db);
+  await adapter.getSchema('public');
+  let result = await adapter.loadItemsIn('bar', 'foo', '1,2');
+  expect(result).toEqual(expected);
+  result = await adapter.loadItemsIn('bar', 'foo', '1,2', 2);
+  expect(result).toEqual(expected);
+  result = await adapter.loadItemsIn('bar', 'foo', '1,2', null, {});
+  expect(result).toEqual(expected);
+  result = await adapter.loadItemsIn('bar', 'foo', '1,2', null, { bar: {}});
+  expect(result).toEqual(expected);
+  result = await adapter.loadItemsIn('bar', 'foo', '1,2', null, { bar: {'1': { foo: 1 }}});
+  expect(result).toEqual(expected);
+  
+  done();
+});
+
+xtest('it should load foreign records', async (done) => {
   const schema = {
     mockPostgresLoadForeignFoo: {
       __pk: 'id',
@@ -400,7 +402,6 @@ test('it should load foreign records', async (done) => {
   expect(mock.item).toEqual(mock.toEqual);
   done();
 });
-*/
 
 xtest('it should load reverse related records', async (done) => {
   const schema = {
