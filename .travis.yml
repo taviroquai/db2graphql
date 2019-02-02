@@ -1,7 +1,12 @@
 language: node_js
 node_js: lts/*
 sudo: false
+services:
+  - postgresql
+before_script:
+  - psql -c 'create database db2graphql_test;' -U postgres
+  - psql -c "alter role postgres with password postgres;" -U postgres
 install:
-- npm install
+  - npm install
 script:
-- npm run travis_test
+  - npm run travis_test

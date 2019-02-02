@@ -88,8 +88,9 @@ class PostgreSQL {
    */
   async pageTotal(tablename, args) {
     const query = this.db(tablename);
-    (args) && this.addWhereFromArgs(tablename, query, args); 
-    return await query.count();
+    (args) && this.addWhereFromArgs(tablename, query, args);
+    const result = await query.count();
+    return parseInt(result[0].count, 10);
   }
 
   /**
