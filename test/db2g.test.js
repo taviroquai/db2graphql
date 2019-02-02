@@ -1,10 +1,62 @@
 const db2g = require('../src/db2g');
-const Postgres = require('../src/adapters/postgres');
+const knex = require('knex');
+const connection = require('./connection.json');
+const db = knex(connection);
 
-const dbSchema = {"bar": {"__pk": "foo_id", "__reverse": [], "foo_id": {"__foreign": {"columnname": "id", "schemaname": "public", "tablename": "foo"}, "data_type": "bigint", "is_nullable": undefined, "name": "foo_id"}, "id": {"data_type":"bigint", "is_nullable": undefined, "name": "id"}}, "foo": {"__pk": null, "__reverse": [{"columnname": "id", "fcolumnname": "foo_id", "fschemaname": undefined, "ftablename": "bar"}], "id": {"data_type": "bigint", "is_nullable":undefined, "name": "id"}}};
-const schema = `type Foo {
-  id: Int,
-  bar: PageBar
+describe('Db2graphql', () => {
+
+  test('it should throw error on invalid database driver', async (done) => {
+    const MockKnex1 = {
+      connection: () => {
+        return {
+          client: {
+            config: {
+              client: 'sqlite'
+            }
+          }
+        }
+      }
+    };
+    const api = new db2g(MockKnex1);
+    try {
+      await api.connect();
+    } catch (err) {
+      expect(err.message).toMatch('Database driver not available');
+    }
+    done();
+  });
+
+  test('it should create a new db2g instance', () => {
+    const api = new db2g(db);
+    expect(api instanceof db2g).toBe(true);
+  });
+
+  test('it should initialize without errors', async (done) => {
+    const api = new db2g(db);
+    await api.connect();
+    done();
+  });
+
+  test('it should return database schema', async (done) => {
+    await db.schema.dropTableIfExists('bar');
+    await db.schema.dropTableIfExists('foo');
+    const api = new db2g(db);
+    let result = await api.getDatabaseSchema();
+    expect(result).toEqual({});
+    result = await api.getDatabaseSchema();
+    expect(result).toEqual({});
+    done();
+  });
+
+  test('it should return graphql schema from database', async (done) => {
+    await db.schema.dropTableIfExists('bar');
+    await db.schema.dropTableIfExists('foo');
+    await db.schema.createTable('foo', (table) => {
+      table.integer('bar').primary();
+    });
+
+    const schema = `type Foo {
+  bar: Int
 }
 
 type PageFoo{
@@ -13,259 +65,198 @@ type PageFoo{
   items: [Foo]
 }
 
-type Bar {
-  id: Int,
-  foo_id: Int,
-  foo: Foo
-}
-
-type PageBar{
-  total: Int,
-  tablename: String,
-  items: [Bar]
-}
-
 type Query {
 
   getPageFoo(filter: String, pagination: String): PageFoo
   getFirstOfFoo(filter: String, pagination: String): Foo
-  getPageBar(filter: String, pagination: String): PageBar
-  getFirstOfBar(filter: String, pagination: String): Bar
 }
 
 type Mutation {
 
   putItemFoo (
-    id: Int
+    bar: Int
   ): Foo
-  putItemBar (
-    id: Int,
-    foo_id: Int
-  ): Bar
-}`;
-
-const MockKnexFluidInterface = async (name, cb) => {
-  const fns = {
-    primary: () => fns,
-    increments: () =>fns,
-    dropColumn: () => fns,
-    foreign: () => fns,
-    references: () => fns
-  };
-  const types = Postgres.getAvailableTypes();
-  types.map(t => {
-    fns[t] = () => fns;
-  });
-  cb(fns);
-};
-
-const config = {
-  client: 'pg'
-};
-const MockKnex = {
-  schema: {
-    createTable: MockKnexFluidInterface,
-    dropTable: async () => {},
-    table: MockKnexFluidInterface
-  },
-  connection: () => {
-    return {
-      client: {
-        config
-      }
-    }
-  },
-  raw: (sql, params) => {
-    if (/from.information_schema\.tables/i.test(sql)) {
-      let mock = require('./mocks/mockPostgresGetTables');
-      return mock.result;
-    }
-    if (/from.information_schema\.columns/i.test(sql)) {
-      if (params[1] === 'bar') return { rows: [
-        { name: 'id', data_type: 'bigint' },
-        { name: 'foo_id', data_type: 'bigint' },
-      ]};
-      return { rows: [
-        { name: 'id', data_type: 'bigint' }
-      ]};
-    }
-    if (/information_schema\.table_constraints/i.test(sql)) {
-      if (params[1] === 'bar') return { rows: [{
-        tablename: 'bar',
-        columnname: 'foo_id',
-        ftableschema: 'public',
-        ftablename: 'foo',
-        fcolumnname: 'id'
-      }] };
-      return { rows: []};
-    }
-  }
-};
-
-test('it should throw error on invalid database driver', async (done) => {
-  const MockKnex1 = {
-    connection: () => {
-      return {
-        client: {
-          config: {
-            client: 'sqlite'
-          }
-        }
-      }
-    }
-  };
-  const api = new db2g(MockKnex1);
-  try {
+}`
+    const api = new db2g(db);
     await api.connect();
-  } catch (err) {
-    expect(err.message).toMatch('Database driver not available');
-  }
-  done();
-});
-
-test('it should create a new db2g instance', () => {
-  const api = new db2g(MockKnex);
-  expect(api instanceof db2g).toBe(true);
-});
-
-test('it should initialize without errors', async (done) => {
-  const api = new db2g(MockKnex);
-  await api.connect();
-  done();
-});
-
-test('it should return database schema', async (done) => {
-  const api = new db2g(MockKnex);
-  let result = await api.getDatabaseSchema();
-  expect(result).toEqual(dbSchema);
-  result = await api.getDatabaseSchema();
-  expect(result).toEqual(dbSchema);
-  done();
-});
-
-test('it should return graphql schema from database', async (done) => {
-  const api = new db2g(MockKnex);
-  await api.connect();
-  let result = api.getSchema();
-  expect(result).toEqual(schema);
-  result = api.getSchema();
-  expect(result).toEqual(schema);
-  done();
-});
-
-test('it should override a built-in resolver', async (done) => {
-  const api = new db2g(MockKnex);
-  await api.connect();
-  const resolver1 = (root, args, context) => {
-    const { resolver, tablename } = context.ioc;
-    expect(typeof resolver).toEqual('object');
-    expect(tablename).toEqual('foo');
+    let result = await api.getDatabaseSchema();
+    result = api.getSchema();
+    expect(result).toEqual(schema);
+    result = api.getSchema();
+    expect(result).toEqual(schema);
     done();
-  };
-  api.override('getPage', resolver1);
-  const result = api.getResolvers();
-  expect(typeof result).toEqual('object');
-  expect(typeof result.Query).toEqual('object');
-  expect(typeof result.Query.getPageFoo).toEqual('function');
-  await result.Query.getPageFoo(null, {}, {});
-});
+  });
 
-test('it should return graphql schema without connect to database', async (done) => {
-  const api = new db2g();
-  let result = api.getSchema();
-  expect(result).toEqual('');
-  done();
-});
+  test('it should override a built-in resolver', async (done) => {
+    
+    // Setup database
+    await db.schema.dropTableIfExists('bar');
+    await db.schema.dropTableIfExists('foo');
+    await db.schema.createTable('foo', (table) => {
+      table.integer('bar').primary();
+    });
+    await db.schema.createTable('bar', (table) => {
+      table.integer('foo').primary();
+      table.integer('bar');
+      table.foreign('bar').references('foo.bar')
+    });
 
-test('it should return the resolvers without connect to database', async (done) => {
-  const api = new db2g();
-  const result = api.getResolvers();
-  expect(typeof result).toEqual('object');
-  expect(typeof result.Query).toEqual('object');
-  expect(typeof result.Mutation).toEqual('object');
-  done();
-});
+    const api = new db2g(db);
+    await api.connect();
+    const resolver1 = (root, args, context) => {
+      const { resolver, tablename } = context.ioc;
+      expect(typeof resolver).toEqual('object');
+      expect(tablename).toEqual('foo');
+      done();
+    };
+    api.override('getPage', resolver1);
+    const result = api.getResolvers();
+    expect(typeof result).toEqual('object');
+    expect(typeof result.Query).toEqual('object');
+    expect(typeof result.Query.getPageFoo).toEqual('function');
+    await result.Query.getPageFoo(null, {}, {});
+  });
 
-test('it should add a graphql type without connect to database', async (done) => {
-  const api = new db2g();
-  api.addType('type Foo { bar: Boolean }');
-  const result = api.getSchema();
-  expect(result).toEqual("type Foo { bar: Boolean }\n\n");
-  done();
-});
-
-test('it should add a graphql query without connect to database', async (done) => {
-  const api = new db2g();
-  api.addQuery('getFoo: Foo');
-  const result = api.getSchema();
-  expect(result).toEqual("type Query {\n  getFoo: Foo\n}\n\n");
-  done();
-});
-
-test('it should add a graphql mutation', async (done) => {
-  const api = new db2g();
-  api.addMutation('putFoo(bar: Boolean): Foo');
-  const result = api.getSchema();
-  expect(result).toEqual("type Mutation {\n  putFoo(bar: Boolean): Foo\n}");
-  done();
-});
-
-test('it should add a resolver', async (done) => {
-  const api = new db2g();
-  const resolver1 = async (root, args, context) => {
-    const { resolver } = context.ioc;
-    expect(typeof resolver).toEqual('object');
+  test('it should return graphql schema without connect to database', async (done) => {
+    const api = new db2g();
+    let result = api.getSchema();
+    expect(result).toEqual('');
     done();
-  };
-  api.addResolver('Query', 'getFoo', resolver1);
-  const result = api.getResolvers();
-  expect(typeof result).toEqual('object');
-  expect(typeof result.Query).toEqual('object');
-  expect(typeof result.Query.getFoo).toEqual('function');
-  await result.Query.getFoo(null, {}, {});
-});
+  });
+
+  test('it should return the resolvers without connect to database', async (done) => {
+    const api = new db2g();
+    const result = api.getResolvers();
+    expect(typeof result).toEqual('object');
+    expect(typeof result.Query).toEqual('object');
+    expect(typeof result.Mutation).toEqual('object');
+    done();
+  });
+
+  test('it should add a graphql type without connect to database', async (done) => {
+    const api = new db2g();
+    api.addType('type Foo { bar: Boolean }');
+    const result = api.getSchema();
+    expect(result).toEqual("type Foo { bar: Boolean }\n\n");
+    done();
+  });
+
+  test('it should add a graphql query without connect to database', async (done) => {
+    const api = new db2g();
+    api.addQuery('getFoo: Foo');
+    const result = api.getSchema();
+    expect(result).toEqual("type Query {\n  getFoo: Foo\n}\n\n");
+    done();
+  });
+
+  test('it should add a graphql mutation', async (done) => {
+    const api = new db2g();
+    api.addMutation('putFoo(bar: Boolean): Foo');
+    const result = api.getSchema();
+    expect(result).toEqual("type Mutation {\n  putFoo(bar: Boolean): Foo\n}");
+    done();
+  });
+
+  test('it should add a resolver', async (done) => {
+    const api = new db2g();
+    const resolver1 = async (root, args, context) => {
+      const { resolver } = context.ioc;
+      expect(typeof resolver).toEqual('object');
+      done();
+    };
+    api.addResolver('Query', 'getFoo', resolver1);
+    const result = api.getResolvers();
+    expect(typeof result).toEqual('object');
+    expect(typeof result.Query).toEqual('object');
+    expect(typeof result.Query.getFoo).toEqual('function');
+    await result.Query.getFoo(null, {}, {});
+  });
 
 
-test('it should add the builder', async (done) => {
-  const api = new db2g();
-  api.withBuilder();
-  const result = api.getResolvers();
-  expect(typeof result).toEqual('object');
-  expect(typeof result.Query).toEqual('object');
-  expect(typeof result.Query.getSchema).toEqual('function');
-  expect(typeof result.Query.addSchemaTable).toEqual('function');
-  expect(typeof result.Query.dropSchemaTable).toEqual('function');
-  expect(typeof result.Query.addSchemaColumn).toEqual('function');
-  expect(typeof result.Query.dropSchemaColumn).toEqual('function');
-  done();
-});
+  test('it should add the builder', async (done) => {
+    const api = new db2g();
+    api.withBuilder();
+    const result = api.getResolvers();
+    expect(typeof result).toEqual('object');
+    expect(typeof result.Query).toEqual('object');
+    expect(typeof result.Query.getSchema).toEqual('function');
+    expect(typeof result.Query.addSchemaTable).toEqual('function');
+    expect(typeof result.Query.dropSchemaTable).toEqual('function');
+    expect(typeof result.Query.addSchemaColumn).toEqual('function');
+    expect(typeof result.Query.dropSchemaColumn).toEqual('function');
+    done();
+  });
 
-test('it should run builder queries without errors', async (done) => {
-  const api = new db2g(MockKnex);
-  await api.connect();
-  api.withBuilder();
-  const resolvers = api.getResolvers();
-  await resolvers.Query.getSchema(null, {}, {});
+  test('it should run builder queries without errors', async (done) => {
 
-  let result = await resolvers.Query.addSchemaTable(null, {}, {});
-  expect(result).toEqual(false);
-  result = await resolvers.Query.addSchemaTable(null, { type: "integer" }, {});
-  expect(result).toEqual(true);
-  result = await resolvers.Query.addSchemaTable(null, { type: "integer", increments: true }, {});
-  expect(result).toEqual(true);
+    const api = new db2g(db);
+    await api.connect();
+    api.withBuilder();
+    const resolvers = api.getResolvers();
+    await resolvers.Query.getSchema(null, {}, {});
 
-  result = await resolvers.Query.dropSchemaTable(null, {}, {});
-  expect(result).toEqual(true);
+    let result, args;
 
-  result = await resolvers.Query.addSchemaColumn(null, {}, {});
-  expect(result).toEqual(false);
-  result = await resolvers.Query.addSchemaColumn(null, { type: "integer" }, {});
-  expect(result).toEqual(true);
-  result = await resolvers.Query.addSchemaColumn(null, { type: "integer", foreign: "foo.bar" }, {});
-  expect(result).toEqual(true);
+    await db.schema.dropTableIfExists('bar');
+    await db.schema.dropTableIfExists('foo');
+    args = { type: "ops", tablename: 'foo', primary: "id" };
+    result = await resolvers.Query.addSchemaTable(null, args, {});
+    expect(result).toEqual(false);
 
+    await db.schema.dropTableIfExists('bar');
+    await db.schema.dropTableIfExists('foo');
+    args = { type: "integer", tablename: 'foo', primary: "id" };
+    result = await resolvers.Query.addSchemaTable(null, args, {});
+    expect(result).toEqual(true);
 
-  result = await resolvers.Query.dropSchemaColumn(null, {}, {});
-  expect(result).toEqual(true);
-  done();
+    await db.schema.dropTableIfExists('foo');
+    args = { type: "integer", tablename: 'foo', primary: "id", increments: true };
+    result = await resolvers.Query.addSchemaTable(null, args, {});
+    expect(result).toEqual(true);
+
+    await db.schema.dropTableIfExists('foo');
+    await db.schema.createTable('foo', (table) => {
+      table.integer('foo').primary();
+    });
+    result = await resolvers.Query.dropSchemaTable(null, { tablename: "foo" }, {});
+    expect(result).toEqual(true);
+
+    await db.schema.dropTableIfExists('foo');
+    await db.schema.createTable('foo', (table) => {
+      table.integer('foo').primary();
+    });
+    args = { tablename: 'foo', columnname: 'foo', type: 'ops' };
+    result = await resolvers.Query.addSchemaColumn(null, args, {});
+    expect(result).toEqual(false);
+
+    await db.schema.dropTableIfExists('foo');
+    await db.schema.createTable('foo', (table) => {
+      table.integer('id').primary();
+    });
+    args = { tablename: 'foo', columnname: 'foo', type: 'integer' };
+    result = await resolvers.Query.addSchemaColumn(null, args, {});
+    expect(result).toEqual(true);
+
+    await db.schema.dropTableIfExists('bar');
+    await db.schema.dropTableIfExists('foo');
+    await db.schema.createTable('foo', (table) => {
+      table.integer('foo').primary();
+    });
+    await db.schema.createTable('bar', (table) => {
+      table.integer('bar').primary();
+    });
+    args = { tablename: "foo", type: "integer", columnname: "foz", foreign: "bar.bar" }
+    result = await resolvers.Query.addSchemaColumn(null, args, {});
+    expect(result).toEqual(true);
+
+    await db.schema.dropTableIfExists('foo');
+    await db.schema.createTable('foo', (table) => {
+      table.integer('foo').primary();
+      table.integer('bar');
+    });
+    args = { tablename: 'foo', columnname: "bar" };
+    result = await resolvers.Query.dropSchemaColumn(null, args, {});
+    expect(result).toEqual(true);
+    done();
+  });
 });

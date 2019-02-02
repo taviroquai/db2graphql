@@ -260,6 +260,23 @@ test('it should add user-made resorver', async (done) => {
   await result.Query.getFoo(null, {}, {});
 });
 
+test('it should add user-made resorver without database', async (done) => {
+  const resolver1 = new Resolver();
+  const callback = async (root, args, context) => {
+    const { resolver } = context.ioc;
+    expect(resolver).toEqual(resolver1);
+    done();
+  };
+  resolver1.add('Query', 'getFoo', callback);
+  let result = resolver1.getResolvers();
+
+  // Assert
+  expect(typeof result).toEqual('object');
+  expect(typeof result.Query).toEqual('object');
+  expect(typeof result.Query.getFoo).toEqual('function');
+  await result.Query.getFoo(null, {}, {});
+});
+
 test('it should return without built-in resolver', async (done) => {
   const MockDriver = function() {
     this.getTablesFromSchema = () => {
