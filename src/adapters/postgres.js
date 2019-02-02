@@ -102,7 +102,6 @@ class PostgreSQL {
    */
   async firstOf(tablename, args, depth = 1, cache = {}) {
     if (depth > 4) return;
-    console.log('firstof', tablename, depth);
 
     // Load item
     let query = this.db(tablename);
@@ -287,17 +286,21 @@ class PostgreSQL {
     // Collect ids
     const pk = this.getPrimaryKeyFromSchema(tablename);
     const ids = items.map(i => i[pk]).join(',');
-    for (let i = 0; i < this.dbSchema[tablename].__reverse.length; i++) {
-      const ftablename = this.dbSchema[tablename].__reverse[i].ftablename;
-      const fcolumnname = this.dbSchema[tablename].__reverse[i].fcolumnname;
+
+    // Get all relations
+    const relations = this.dbSchema[tablename].__reverse;
+    for (let i = 0; i < relations.length; i++) {
+      const ftablename = relations[i].ftablename;
+      const fcolumnname = relations[i].fcolumnname;
       
       // Load related
       let results = await this.loadItemsIn(ftablename, fcolumnname, ids, depth+1, cache);
       for (let j = 0; j < results.length; j++) {
         const related = results[j];
         const item = cache[tablename][related[fcolumnname]];
-        if (!item[ftablename]) item[ftablename] = { total: results.length, items: [] };
+        if (!item[ftablename]) item[ftablename] = { total: 0, items: [] };
         item[ftablename].items.push(related);
+        item[ftablename].total = item[ftablename].items.length;
       }
       await this.loadForeignItems(results, ftablename, args, depth+1, cache);
       await this.loadReverseItems(results, ftablename, args, depth+1, cache);
