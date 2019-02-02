@@ -362,91 +362,69 @@ test('it should load items from table using records ids', async (done) => {
   done();
 });
 
-xtest('it should load foreign records', async (done) => {
-  const schema = {
-    mockPostgresLoadForeignFoo: {
-      __pk: 'id',
-      __reverse: [],
-      id: {
-        name: 'id',
-        is_nullable: false,
-        data_type: 'bigint'
-      },
-      bar_id: {
-        name: 'id',
-        is_nullable: false,
-        data_type: 'bigint',
-        __foreign: {
-          schemaname: 'public',
-          tablename: 'mockPostgresLoadForeignBar',
-          columnname: 'id'
-        }
-      },
-    },
-    mockPostgresLoadForeignBar: {
-      __pk: 'id',
-      __reverse: [],
-      id: {
-        name: 'id',
-        is_nullable: false,
-        data_type: 'bigint'
-      }
-    }
-  };
-  const adapter = new PostgreSQL(knex(), schema);
-  const mock = require('../mocks/mockPostgresLoadForeignFoo');
+test('it should load foreign records', async (done) => {
+  
+  // Setup database
+  await db.schema.dropTableIfExists('bar');
+  await db.schema.dropTableIfExists('foo');
+  await db.schema.createTable('foo', (table) => {
+    table.integer('id').primary();
+  });
+  await db.schema.createTable('bar', (table) => {
+    table.integer('id').primary();
+    table.integer('bar_id');
+    table.foreign('bar_id').references('foo.id')
+  });
+  await db('foo').insert({ id: 1 });
+  await db('foo').insert({ id: 2 });
+  await db('bar').insert({ id: 1, bar_id: 1 });
+  await db('bar').insert({ id: 2, bar_id: 2 });
+  let items;
 
-  // Mock firstOf method
-  adapter.firstOf = async (tablename, args) => ({});
-  await adapter.loadForeignItems([mock.item], mock.tablename, mock.args);
-  expect(mock.item).toEqual(mock.toEqual);
+  const adapter = new PostgreSQL(db);
+  await adapter.getSchema('public');
+
+  // Assert
+  items = [{ foo: 1, bar_id: 1 }];
+  expected = { id: 1 };
+  await adapter.loadForeignItems(items, 'bar', {});
+  delete items[0].foo.bar; // Remove circular references
+  expect(typeof items[0].foo).toEqual('object')
+  expect(items[0].foo).toEqual(expected);
   done();
 });
 
-xtest('it should load reverse related records', async (done) => {
-  const schema = {
-    mockPostgresLoadReverseFoo: {
-      __pk: 'id',
-      __reverse: [],
-      id: {
-        name: 'id',
-        is_nullable: false,
-        data_type: 'bigint'
-      },
-      bar_id: {
-        name: 'id',
-        is_nullable: false,
-        data_type: 'bigint',
-        __foreign: {
-          schemaname: 'public',
-          tablename: 'mockPostgresLoadReverseBar',
-          columnname: 'id'
-        }
-      },
-    },
-    mockPostgresLoadReverseBar: {
-      __pk: 'id',
-      __reverse: [
-        {
-          columnname: 'id',
-          ftablename: 'mockPostgresLoadReverseFoo',
-          fcolumnname: 'bar_id'
-        }
-      ],
-      id: {
-        name: 'id',
-        is_nullable: false,
-        data_type: 'bigint'
-      }
-    }
-  };
-  const adapter = new PostgreSQL(knex(), schema);
+test('it should load reverse related records', async (done) => {
+  
+  // Setup database
+  await db.schema.dropTableIfExists('bar');
+  await db.schema.dropTableIfExists('foo');
+  await db.schema.createTable('foo', (table) => {
+    table.integer('id').primary();
+  });
+  await db.schema.createTable('bar', (table) => {
+    table.integer('id').primary();
+    table.integer('foo_id');
+    table.foreign('foo_id').references('foo.id')
+  });
+  await db('foo').insert({ id: 1 });
+  await db('foo').insert({ id: 2 });
+  await db('bar').insert({ id: 1, foo_id: 1 });
+  await db('bar').insert({ id: 2, foo_id: 1 });
+  let items;
 
-  // Mock page method
-  adapter.page = async (tablename, args) => {
-    return [{ id: 1}];
-  }
-  const mock = require('../mocks/mockPostgresLoadReverseBar');
-  await adapter.loadReverseItems([mock.item], mock.tablename, mock.args);
+  const adapter = new PostgreSQL(db);
+  await adapter.getSchema('public');
+
+  // Assert
+  items = [{ id: 1 }];
+  expected = { total: 2, items: [{ id: 1, foo_id: 1 }, { id: 2, foo_id: 1 }] };
+  await adapter.loadReverseItems(items, 'foo', {});
+  delete items[0].bar.items[0].foo; // Remove circular references
+  delete items[0].bar.items[1].foo; // Remove circular references
+  expect(typeof items[0].bar).toEqual('object')
+  expect(typeof items[0].bar.items).toEqual('object');
+  expect(typeof items[0].bar.total).toEqual('number')
+  expect(items[0].bar).toEqual(expected);
   done();
 });

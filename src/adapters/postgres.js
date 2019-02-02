@@ -274,7 +274,6 @@ class PostgreSQL {
   /**
    * Eager loading of inverse related records
    * Limited by max depth
-   * TODO: fix this mess!!!
    * 
    * @param {Array} items 
    * @param {String} tablename 
@@ -293,12 +292,13 @@ class PostgreSQL {
     for (let i = 0; i < relations.length; i++) {
       const ftablename = relations[i].ftablename;
       const fcolumnname = relations[i].fcolumnname;
+      const columnname = relations[i].columnname;
       
       // Load related
       let results = await this.loadItemsIn(ftablename, fcolumnname, ids, depth+1, cache);
       for (let j = 0; j < results.length; j++) {
         const related = results[j];
-        const item = cache[tablename][related[fcolumnname]];
+        const item = items.filter(i => ''+i[columnname] === ''+related[fcolumnname]).pop();
         if (!item[ftablename]) item[ftablename] = { total: 0, items: [] };
         item[ftablename].items.push(related);
         item[ftablename].total = item[ftablename].items.length;
