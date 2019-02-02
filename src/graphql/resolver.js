@@ -64,9 +64,9 @@ class Resolver {
    */
   async getPage(tablename, args) {
     args = this.parseArgs('getPage', args);
-    const result = await this.dbDriver.pageTotal(tablename, args);
+    const total = await this.dbDriver.pageTotal(tablename, args);
     const items = await this.dbDriver.page(tablename, args);
-    return { total: result[0].count, tablename, items };
+    return { total, tablename, items };
   }
 
   /**

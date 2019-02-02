@@ -34,7 +34,7 @@ test('it should return a page of items', async (done) => {
       return [{id:1}]
     },
     this.pageTotal = async () => {
-      return [{ count: 1 }];
+      return 1;
     }
   }
   const dbDriver = new MockDriver();
