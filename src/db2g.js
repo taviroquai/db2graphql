@@ -10,9 +10,6 @@ const Resolver = require('../src/graphql/resolver');
  * from a relational database schema.
  * </p>
  * 
- * @namespace DB2Graphql
- * @class
- * 
  */
 class DB2Graphql {
 
