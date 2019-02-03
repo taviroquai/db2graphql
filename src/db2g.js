@@ -151,13 +151,17 @@ class DB2Graphql {
       const { resolver, db } = context.ioc;
       const types = resolver.dbDriver.constructor.getAvailableTypes();
       if (types.indexOf(args.type) === -1) return false;
-      await db.schema.table(args.tablename, table => {
-        table[args.type](args.columnname);
-        if (args.foreign) {
-          table.foreign(args.columnname).references(args.foreign)
-        }
-      });
-      return true;
+      try {
+        await db.schema.table(args.tablename, table => {
+          table[args.type](args.columnname).defaultTo(args.default || null);
+          if (args.unique) table.unique(args.columnname);
+          if (args.index) table.index(args.columnname);
+          if (args.foreign) table.foreign(args.columnname).references(args.foreign)
+        });
+        return true;
+      } catch(err) {
+        return false;
+      }
     });
 
     // Add dropSchemaColumn
@@ -170,10 +174,14 @@ class DB2Graphql {
     this.addQuery(queryDropColumn);
     this.addResolver('Query', 'dropSchemaColumn', async (root, args, context) => {
       const { db } = context.ioc;
-      await db.schema.table(args.tablename, table => {
-        table.dropColumn(args.columnname);
-      });
-      return true;
+      try {
+        await db.schema.table(args.tablename, table => {
+          table.dropColumn(args.columnname);
+        });
+        return true;
+      } catch (err) {
+        return false;
+      }
     });
 
     // Add addSchemaTable
@@ -190,11 +198,15 @@ class DB2Graphql {
       const { resolver, db } = context.ioc;
       const types = resolver.dbDriver.constructor.getAvailableTypes();
       if (types.indexOf(args.type) === -1) return false;
-      await db.schema.createTable(args.tablename, (table) => {
-        if (args.increments) table.increments(args.primary);
-        else table[args.type](args.primary).primary();
-      })
-      return true;
+      try {
+        await db.schema.createTable(args.tablename, (table) => {
+          if (args.increments) table.increments(args.primary);
+          else table[args.type](args.primary).primary();
+        })
+        return true;
+      } catch (err) {
+        return false;
+      }
     });
 
     // Add dropSchemaTable
@@ -202,8 +214,12 @@ class DB2Graphql {
     this.addQuery(dropSchemaTable);
     this.addResolver('Query', 'dropSchemaTable', async (root, args, context) => {
       const { db } = context.ioc;
-      await db.schema.dropTable(args.tablename);
-      return true;
+      try {
+        await db.schema.dropTable(args.tablename);
+        return true;
+      } catch (err) {
+        return false;
+      }
     });
 
   }

@@ -208,6 +208,8 @@ type Mutation {
     args = { type: "integer", tablename: 'foo', primary: "id" };
     result = await resolvers.Query.addSchemaTable(null, args, {});
     expect(result).toEqual(true);
+    result = await resolvers.Query.addSchemaTable(null, args, {});
+    expect(result).toEqual(false);
 
     await db.schema.dropTableIfExists('foo');
     args = { type: "integer", tablename: 'foo', primary: "id", increments: true };
@@ -220,6 +222,8 @@ type Mutation {
     });
     result = await resolvers.Query.dropSchemaTable(null, { tablename: "foo" }, {});
     expect(result).toEqual(true);
+    result = await resolvers.Query.dropSchemaTable(null, { tablename: "foo" }, {});
+    expect(result).toEqual(false);
 
     await db.schema.dropTableIfExists('foo');
     await db.schema.createTable('foo', (table) => {
@@ -251,12 +255,32 @@ type Mutation {
 
     await db.schema.dropTableIfExists('foo');
     await db.schema.createTable('foo', (table) => {
+      table.integer('id').primary();
+    });
+    args = { tablename: 'foo', columnname: 'foo', type: 'integer', unique: true };
+    result = await resolvers.Query.addSchemaColumn(null, args, {});
+    expect(result).toEqual(true);
+
+    await db.schema.dropTableIfExists('foo');
+    await db.schema.createTable('foo', (table) => {
+      table.integer('id').primary();
+    });
+    args = { tablename: 'foo', columnname: 'foo', type: 'integer', index: true };
+    result = await resolvers.Query.addSchemaColumn(null, args, {});
+    expect(result).toEqual(true);
+    result = await resolvers.Query.addSchemaColumn(null, args, {});
+    expect(result).toEqual(false);
+
+    await db.schema.dropTableIfExists('foo');
+    await db.schema.createTable('foo', (table) => {
       table.integer('foo').primary();
       table.integer('bar');
     });
     args = { tablename: 'foo', columnname: "bar" };
     result = await resolvers.Query.dropSchemaColumn(null, args, {});
     expect(result).toEqual(true);
+    result = await resolvers.Query.dropSchemaColumn(null, args, {});
+    expect(result).toEqual(false);
     done();
   });
 });
