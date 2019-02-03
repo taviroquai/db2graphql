@@ -381,8 +381,8 @@ describe('Postgres Driver', () => {
     
     // Fixtures
     const expected = [
-      { foo: 1 },
-      { foo: 2 }
+      { foo: 1, bar: 1 },
+      { foo: 2, bar: 2 }
     ];
 
     // Setup database
@@ -391,22 +391,30 @@ describe('Postgres Driver', () => {
     await db.schema.dropTableIfExists('foo');
     await db.schema.createTable('bar', (table) => {
       table.integer('foo').primary();
+      table.integer('bar');
     });
-    await db('bar').insert({ foo: 1 });
-    await db('bar').insert({ foo: 2 });
+    await db('bar').insert({ foo: 1, bar: 1 });
+    await db('bar').insert({ foo: 2, bar: 2 });
 
     const adapter = new PostgreSQL(db);
     await adapter.getSchema('public');
-    let result = await adapter.loadItemsIn('bar', 'foo', '1,2');
+    let result = await adapter.loadItemsIn('bar', 'foo', [1, 2]);
     expect(result).toEqual(expected);
-    result = await adapter.loadItemsIn('bar', 'foo', '1,2', 2);
+    let cache = {};
+    result = await adapter.loadItemsIn('bar', 'foo', [1, 2], cache);
     expect(result).toEqual(expected);
-    result = await adapter.loadItemsIn('bar', 'foo', '1,2', null, {});
+    cache = { bar: {}};
+    result = await adapter.loadItemsIn('bar', 'foo', [1, 2], cache);
     expect(result).toEqual(expected);
-    result = await adapter.loadItemsIn('bar', 'foo', '1,2', null, { bar: {}});
+    cache = { bar: {'1': { foo: 1, bar: 1 }}};
+    result = await adapter.loadItemsIn('bar', 'foo', [1, 2], cache);
     expect(result).toEqual(expected);
-    result = await adapter.loadItemsIn('bar', 'foo', '1,2', null, { bar: {'1': { foo: 1 }}});
-    expect(result).toEqual(expected);
+
+    // Test with args
+    let args = { filter: { bar: [[ '=', 'bar', 2 ]] } };
+    cache = { bar: {'1': { foo: 1, bar: 1 }}};
+    result = await adapter.loadItemsIn('bar', 'foo', [1, 2], args, cache);
+    expect(result).toEqual([{ foo: 2, bar: 2 }]);
     
     done();
   });
