@@ -3,19 +3,38 @@ const Compiler = require('../src/graphql/compiler');
 const Resolver = require('../src/graphql/resolver');
 
 /**
- * Facade
+ * Main facade interface for DB2Graphql.
+ * 
+ * <p>
+ * DB2Graphql is a library to create a Graphql API
+ * from a relational database schema.
+ * </p>
+ * 
+ * @namespace DB2Graphql
+ * @class
+ * 
  */
 class DB2Graphql {
 
   /**
-   * Creates a new db2graphql facade
-   * @param {Object} connection 
+   * Creates a new DB2Graphql facade
+   * 
+   * <br>
+   * <br>Usage example:
+   * 
+   * <pre>
+   * import knex from 'knex'
+   * import DB2Graphql from 'db2graphql'
+   * const db2g = new DB2Graphql(knex())
+   * </pre>
+   * 
+   * @param {Object} [db=null]  Knex database instance
    */
-  constructor(connection) {
+  constructor(db = null) {
     this.drivers = {
       pg: PostgreSQL
     }
-    this.connection = connection;
+    this.connection = db;
     this.dbSchema = null;
     this.gqlSchema = null;
     this.compiler = null;
@@ -26,16 +45,86 @@ class DB2Graphql {
   }
 
   /**
-   * Coonnects to database and builds the database schema
+   * Adds a Graphql mutation to the schema
+   * 
+   * 
+   * @access public
+   * @param {String} name         The name of the resolver ie. putUser
+   * @param {String} returns      The Graphql returning type ie. User
+   * @param {Function} resolver   The resolver callback
+   * @param {Object} [params={}]  The mutation arguments
+   * 
+   * @returns {DB2Graphql}        The self instance for fluent interface
    */
-  async connect() {
+  addMutation(name, returns, resolver, params = {}) {
+    const gql = this.compiler.buildQuery(name, returns, params);
+    this.compiler.addMutation(gql);
+    this.resolver.add('Mutation', name, resolver);
+    return this;
+  }
+
+  /**
+   * Adds a Graphql query to the schema
+   * 
+   * @access public
+   * @param {String} name         The name of the resolver ie. getUser
+   * @param {String} returns      The Graphql returning type ie. User
+   * @param {Function} resolver   The resolver callback
+   * @param {Object} [params={}]  The query arguments
+   * 
+   * @returns {DB2Graphql}        The self instance for fluent interface 
+   */
+  addQuery(name, returns, resolver, params = {}) {
+    const gql = this.compiler.buildQuery(name, returns, params);
+    this.compiler.addQuery(gql);
+    this.resolver.add('Query', name, resolver);
+    return this;
+  }
+
+  /**
+   * Adds a Graphql raw expression
+   * 
+   * @access public
+   * @param {String} gql    The raw expression
+   * 
+   * @returns {DB2Graphql}  The self instance for fluent interface
+   */
+  addRaw(gql) {
+    this.compiler.addRaw(gql);
+    return this;
+  }
+
+  /**
+   * Adds a Graphql type definition
+   * 
+   * @access public
+   * @param {String} gql    The type definition
+   * 
+   * @returns {DB2Graphql}  The self instance for fluent interface
+   */
+  addType(gql) {
+    return this.addRaw(gql);
+  }
+
+  /**
+   * Connects to the database and builds the database schema
+   * 
+   * @access public
+   * @param {String} [connect="public"] The database namespace (if suported)
+   * 
+   * @returns {Promise}                 The self instance for fluent interface
+   */
+  async connect(namespace = 'public') {
+    if (!this.connection) throw new Error('Invalid Knex instance');
+
     const config = this.connection.connection().client.config;
     const drivername = config.client;
     if (!this.drivers[drivername]) {
       throw new Error('Database driver not available');
     }
+
     this.dbDriver = new this.drivers[drivername](this.connection);
-    this.dbSchema = await this.dbDriver.getSchema('public', config.exclude);
+    this.dbSchema = await this.dbDriver.getSchema(namespace, config.exclude);
     this.compiler.dbSchema = this.dbSchema;
     this.compiler.dbDriver = this.dbDriver;
     this.resolver.dbDriver = this.dbDriver;
@@ -43,9 +132,17 @@ class DB2Graphql {
 
   /**
    * Returns a new database schema as object.
+   * 
+   * <br>
    * Lazy loading.
    * 
-   * @param {Boolean} refresh 
+   * <p>
+   * Passing refresh will rebuild the database schema
+   * </p>
+   * 
+   * @param {Boolean} [refresh=false] Reconnects to database and rebuilds the database schema
+   * 
+   * @returns {Promise}               The self instance for fluent interface
    */
   async getDatabaseSchema(refresh = false) {
     if (!this.dbSchema || refresh) await this.connect();
@@ -53,103 +150,51 @@ class DB2Graphql {
   }
 
   /**
-   * Returns a Graphql schema
+   * Get Graphql resolvers
+   */
+  getResolvers() {
+    return this.resolver.getResolvers(!!this.connection);
+  }
+
+  /**
+   * Returns the Graphql schema (string)
+   * 
+   * <br>
    * Lazy loading
    * 
-   * @param {Boolean} refresh 
+   * @param {Boolean} refresh Allows to reconnect to database and rebuild database schema
+   * 
+   * @returns {String}        The Graphql schema as string
    */
-  getSchema(refresh = false, withDatabase = true) {
+  getSchema(refresh = false) {
     if (!this.gqlSchema || refresh) {
-      this.gqlSchema = this.compiler.getSchema(refresh, withDatabase);
+      this.gqlSchema = this.compiler.getSchema(refresh, !!this.connection);
     }
     return this.gqlSchema;
   }
 
   /**
-   * Get compiled resolvers
-   * 
-   * @param {Boolean} withDatabase
-   */
-  getResolvers(withDatabase = true) {
-    return this.resolver.getResolvers(withDatabase);
-  }
-
-  /**
-   * Adds a Graphql expression
-   * 
-   * @param {String} gql 
-   */
-  addType(gql) {
-    this.compiler.addType(gql);
-    return this;
-  }
-
-  /**
-   * Adds a Graphql query
-   * 
-   * @param {String} name 
-   * @param {String} returns 
-   * @param {Function} resolver 
-   * @param {String} params 
-   */
-  addQuery(name, returns, resolver, params = {}) {
-    const gql = this.compiler.buildQuery(name, returns, params);
-    this.compiler.addQuery(gql);
-    this.addRawResolver('Query', name, resolver);
-    return this;
-  }
-
-  /**
-   * Adds a Graphql mutation
-   * 
-   * @param {String} gql 
-   */
-  addMutation(name, returns, resolver, params = {}) {
-    const gql = this.compiler.buildQuery(name, returns, params);
-    this.compiler.addMutation(gql);
-    this.addRawResolver('Mutation', name, resolver);
-    return this;
-  }
-
-  /**
-   * Adds a Graphql query
-   * 
-   * @param {String} gql 
-   */
-  addRawQuery(gql) {
-    this.compiler.addQuery(gql);
-    return this;
-  }
-
-  /**
-   * Adds a Graphql mutation
-   * 
-   * @param {String} gql 
-   */
-  addRawMutation(gql) {
-    this.compiler.addMutation(gql);
-    return this;
-  }
-
-  /**
-   * Adds a Graphql resolver
-   * 
-   * @param {String} namespace 
-   * @param {String} name 
-   * @param {Function} cb 
-   */
-  addRawResolver(namespace, name, cb) {
-    this.resolver.add(namespace, name, cb);
-    return this;
-  }
-
-  /**
    * Overrides a built-in resolver.
-   * Giving access to the resolver instance
-   * and to knex database connection
    * 
-   * @param {String} name 
-   * @param {Function} cb 
+   * <p>
+   * Injects into context the resolver instance
+   * and the knex database connection.
+   * </p>
+   * 
+   * <p>
+   * Usefull for implementing custom authorization
+   * or other middleware.
+   * </p>
+   * 
+   * Name is one of the built-in resolver name:
+   * <br>1. getPage
+   * <br>2. getFirstOf
+   * <br>3. putItem
+   * 
+   * @param {String} name The built-in resolver name 
+   * @param {Function} cb The override callback
+   * 
+   * @returns {DB2Graphql} The self instance for fluent interface
    */
   override(name, cb) {
     this.resolver.on(name, cb);
@@ -158,6 +203,12 @@ class DB2Graphql {
 
   /**
    * Adds the schema builder queries
+   * 
+   * @access public
+   * 
+   * @todo Move to its own repository as a plugin
+   * 
+   * @returns {DB2Graphql} The self instance for fluent interface
    */
   withBuilder() {
 

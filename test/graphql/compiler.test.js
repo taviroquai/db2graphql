@@ -182,7 +182,7 @@ test('it should build a query definition', () => {
 test('it should add a type definition', () => {
   let dbDriver = new PostgreSQL(db, schema);
   let compiler = new Compiler(schema, dbDriver);
-  compiler.addType('type Foo { bar: Boolean }');
+  compiler.addRaw('type Foo { bar: Boolean }');
   let result = compiler.getSchema(false, false);
   expect(result).toEqual("type Foo { bar: Boolean }\n\n");
 });

@@ -154,7 +154,7 @@ class Compiler {
    * 
    * @param {String} gql 
    */
-  addType(gql) {
+  addRaw(gql) {
     this.types.push(gql);
   }
 

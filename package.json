@@ -9,6 +9,7 @@
   "scripts": {
     "demo-db": "sudo psql -h localhost -U postgres -f ./demo/database.sql db2graphql",
     "start": "node demo",
+    "docs:update": "jsdoc src/db2g.js --debug --explain -d docs -R README.md",
     "test": "jest",
     "watch": "jest --maxWorkers=1 --forceExit --watch --coverage --detectOpenHandles",
     "travis_test": "jest --detectOpenHandles --forceExit --maxWorkers=1 --coverage --coverageReporters=text-lcov | coveralls"
@@ -27,6 +28,7 @@
     "coveralls": "^3.0.2",
     "graphql": "^14.1.1",
     "jest": "^23.6.0",
+    "jsdoc": "^3.5.5",
     "knex": "^0.16.3",
     "pg": "^7.8.0"
   },
@@ -34,14 +36,16 @@
     "coveragePathIgnorePatterns": [
       "/node_modules/",
       "/cache/",
-      "/demo/"
+      "/demo/",
+      "/docs/"
     ],
     "collectCoverageFrom": [
       "src/**/*.{js,jsx}"
     ],
     "watchPathIgnorePatterns": [
       "/migrations/",
-      "/demo/"
+      "/demo/",
+      "/docs/"
     ]
   }
 }

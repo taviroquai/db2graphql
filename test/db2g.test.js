@@ -5,9 +5,19 @@ const db = knex(connection);
 
 describe('Db2graphql', () => {
 
+  test('it should throw error on invalid database', async (done) => {
+    const api = new db2g();
+    try {
+      await api.connect();
+    } catch (err) {
+      expect(err.message).toMatch('Invalid Knex instance');
+    }
+    done();
+  });
+
   test('it should throw error on invalid database driver', async (done) => {
-    const MockKnex1 = {
-      connection: () => {
+    function MockKnex() {
+      this.connection = function() {
         return {
           client: {
             config: {
@@ -17,7 +27,7 @@ describe('Db2graphql', () => {
         }
       }
     };
-    const api = new db2g(MockKnex1);
+    const api = new db2g(new MockKnex());
     try {
       await api.connect();
     } catch (err) {
@@ -139,38 +149,6 @@ type Mutation {
     done();
   });
 
-  test('it should add a raw graphql query', async (done) => {
-    const api = new db2g();
-    api.addRawQuery('getFoo: Foo');
-    const result = api.getSchema();
-    expect(result).toEqual("type Query {\n  getFoo: Foo\n}\n\n");
-    done();
-  });
-
-  test('it should add a raw graphql mutation', async (done) => {
-    const api = new db2g();
-    api.addRawMutation('putFoo(bar: Boolean): Foo');
-    const result = api.getSchema();
-    expect(result).toEqual("type Mutation {\n  putFoo(bar: Boolean): Foo\n}");
-    done();
-  });
-
-  test('it should add a raw resolver', async (done) => {
-    const api = new db2g();
-    const resolver1 = async (root, args, context) => {
-      const { resolver } = context.ioc;
-      expect(typeof resolver).toEqual('object');
-      done();
-    };
-    api.addRawResolver('Query', 'getFoo', resolver1);
-    const result = api.getResolvers();
-    expect(typeof result).toEqual('object');
-    expect(typeof result.Query).toEqual('object');
-    expect(typeof result.Query.getFoo).toEqual('function');
-    await result.Query.getFoo(null, {}, {});
-  });
-
-
   test('it should add the builder', async (done) => {
     const api = new db2g();
     api.withBuilder();
@@ -283,13 +261,12 @@ type Mutation {
   });
 
   test('it should use fluent interface without errors', async (done) => {
-    const resolver1 = async (root, args, context) => {};
+    const resolver1 = () => {};
     const api = new db2g()
     api.withBuilder()
       .addType("type Fooz {\n  name: String\n}")
-      .addRawQuery("getFooz: Fooz")
-      .addRawMutation("putFooz(name: String): Fooz")
-      .addRawResolver("Query", "getFooz", resolver1)
+      .addQuery("getFooz", "Fooz", resolver1)
+      .addMutation("putFooz", "Fooz", resolver1)
     const result = api.getResolvers();
     expect(typeof result).toEqual('object');
     expect(typeof result.Query).toEqual('object');
@@ -305,7 +282,7 @@ type Mutation {
     done();
   });
 
-  test('it should add a raw graphql mutation', async (done) => {
+  test('it should add a graphql mutation', async (done) => {
     const api = new db2g();
     api.addMutation('putFoo', 'Foo', (root, args, context) => {});
     const result = api.getSchema();
@@ -313,7 +290,7 @@ type Mutation {
     done();
   });
 
-  test('it should add a raw graphql mutation with params', async (done) => {
+  test('it should add a graphql mutation with params', async (done) => {
     const api = new db2g();
     api.addMutation('putFoo', 'Foo', (root, args, context) => {}, { bar: 'Boolean' });
     const result = api.getSchema();
