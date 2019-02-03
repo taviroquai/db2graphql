@@ -28,11 +28,14 @@ query{
     id
     username
     posts {
-      id
-      title
-      categories {
+      total
+      items {
         id
         title
+        categories {
+          id
+          title
+        }
       }
     }
   }
@@ -125,10 +128,9 @@ const db2g = require('db2graphql');
 const api = new db2g();
 
 // Add a query and resolver
-api.addQuery('getFoo: Boolean');
-api.addResolver('Query', 'getFoo', async (root, args, context) => {
+api.addQuery('getFoo', 'Boolean', async (root, args, context) => {
   return true;
-});
+}, { param: 'String!' });
 
 // Ready to generate schema
 const schema = api.getSchema();

@@ -73,9 +73,7 @@ type Query {
 
 type Mutation {
 
-  putItemFoo (
-    bar: Int
-  ): Foo
+  putItemFoo(bar: Int): Foo
 }`
     const api = new db2g(db);
     await api.connect();
@@ -141,30 +139,30 @@ type Mutation {
     done();
   });
 
-  test('it should add a graphql query without connect to database', async (done) => {
+  test('it should add a raw graphql query', async (done) => {
     const api = new db2g();
-    api.addQuery('getFoo: Foo');
+    api.addRawQuery('getFoo: Foo');
     const result = api.getSchema();
     expect(result).toEqual("type Query {\n  getFoo: Foo\n}\n\n");
     done();
   });
 
-  test('it should add a graphql mutation', async (done) => {
+  test('it should add a raw graphql mutation', async (done) => {
     const api = new db2g();
-    api.addMutation('putFoo(bar: Boolean): Foo');
+    api.addRawMutation('putFoo(bar: Boolean): Foo');
     const result = api.getSchema();
     expect(result).toEqual("type Mutation {\n  putFoo(bar: Boolean): Foo\n}");
     done();
   });
 
-  test('it should add a resolver', async (done) => {
+  test('it should add a raw resolver', async (done) => {
     const api = new db2g();
     const resolver1 = async (root, args, context) => {
       const { resolver } = context.ioc;
       expect(typeof resolver).toEqual('object');
       done();
     };
-    api.addResolver('Query', 'getFoo', resolver1);
+    api.addRawResolver('Query', 'getFoo', resolver1);
     const result = api.getResolvers();
     expect(typeof result).toEqual('object');
     expect(typeof result.Query).toEqual('object');
@@ -281,6 +279,45 @@ type Mutation {
     expect(result).toEqual(true);
     result = await resolvers.Query.dropSchemaColumn(null, args, {});
     expect(result).toEqual(false);
+    done();
+  });
+
+  test('it should use fluent interface without errors', async (done) => {
+    const resolver1 = async (root, args, context) => {};
+    const api = new db2g()
+    api.withBuilder()
+      .addType("type Fooz {\n  name: String\n}")
+      .addRawQuery("getFooz: Fooz")
+      .addRawMutation("putFooz(name: String): Fooz")
+      .addRawResolver("Query", "getFooz", resolver1)
+    const result = api.getResolvers();
+    expect(typeof result).toEqual('object');
+    expect(typeof result.Query).toEqual('object');
+    expect(typeof result.Query.getFooz).toEqual('function');
+    done();
+  });
+
+  test('it should add a graphql query', async (done) => {
+    const api = new db2g();
+    api.addQuery('getFoo', 'Foo', (root, args, context) => {});
+    const result = api.getSchema();
+    expect(result).toEqual("type Query {\n  getFoo: Foo\n}\n\n");
+    done();
+  });
+
+  test('it should add a raw graphql mutation', async (done) => {
+    const api = new db2g();
+    api.addMutation('putFoo', 'Foo', (root, args, context) => {});
+    const result = api.getSchema();
+    expect(result).toEqual("type Mutation {\n  putFoo: Foo\n}");
+    done();
+  });
+
+  test('it should add a raw graphql mutation with params', async (done) => {
+    const api = new db2g();
+    api.addMutation('putFoo', 'Foo', (root, args, context) => {}, { bar: 'Boolean' });
+    const result = api.getSchema();
+    expect(result).toEqual("type Mutation {\n  putFoo(bar: Boolean): Foo\n}");
     done();
   });
 });

@@ -75,13 +75,8 @@ type Query {
 
 type Mutation {
 
-  putItemBar (
-    bar: Int,
-    foo: Int
-  ): Bar
-  putItemFoo (
-    bar: Int
-  ): Foo
+  putItemBar(bar: Int, foo: Int): Bar
+  putItemFoo(bar: Int): Foo
 }`
 
 const invaliddbSchema = {
@@ -93,13 +88,6 @@ const invaliddbSchema = {
     }
   }
 };
-/*
-beforeEach(async (done) => {
-  await db.schema.dropTableIfExists('bar');
-  await db.schema.dropTableIfExists('foo');
-  done();
-});
-*/
 
 test('it should create a new Graphql compiler', () => {
   const compiler = new Compiler();
@@ -153,14 +141,14 @@ test('it should create a putItem definition for tablename', () => {
   const dbDriver = new PostgreSQL(db, dbSchema);
   const compiler = new Compiler(dbSchema, dbDriver);
   let result = compiler.mapDbTableToGraphqlMutation('foo');
-  expect(result).toEqual("putItemFoo (\n    bar: Int\n  ): Foo");
+  expect(result).toEqual("putItemFoo(bar: Int): Foo");
 });
 
 test('invalid field on create putItem definition', () => {
   const dbDriver = new PostgreSQL(null, invaliddbSchema);
   const compiler = new Compiler(invaliddbSchema, dbDriver);
   let result = compiler.mapDbTableToGraphqlMutation('bar');
-  expect(result).toEqual("putItemBar (\n\n  ): Bar");
+  expect(result).toEqual("putItemBar: Bar");
 });
 
 test('it should create a complete dbSchema definition', () => {
@@ -177,6 +165,18 @@ test('it should create an empty dbSchema', () => {
   let compiler = new Compiler({}, dbDriver);
   let result = compiler.getSchema();
   expect(result).toEqual('');
+});
+
+test('it should build a query params definition', () => {
+  let compiler = new Compiler();
+  let result = compiler.buildParamsFromObject({ bar: 'Boolean!' });
+  expect(result).toEqual("(bar: Boolean!)");
+});
+
+test('it should build a query definition', () => {
+  let compiler = new Compiler();
+  let result = compiler.buildQuery('getFoo', 'Boolean', { bar: 'Boolean!' });
+  expect(result).toEqual("getFoo(bar: Boolean!): Boolean");
 });
 
 test('it should add a type definition', () => {

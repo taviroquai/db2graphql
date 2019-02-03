@@ -32,6 +32,30 @@ class Compiler {
   }
 
   /**
+   * Build gql params string from an object
+   * 
+   * @param {Object} obj 
+   */
+  buildParamsFromObject(obj, join = ', ') {
+    let params = [];
+    Object.keys(obj).forEach(k => params.push(k + ': ' + obj[k]));
+    return params.length ? '(' + params.join(join) + ')' : '';
+  }
+
+  /**
+   * Builds a gql string for query/mutation
+   * 
+   * @param {String} name 
+   * @param {String} returns 
+   * @param {Object} params 
+   */
+  buildQuery(name, returns, params) {
+    params = this.buildParamsFromObject(params);
+    const gql = `${name}${params}: ${returns}`;
+    return gql;
+  }
+
+  /**
    * Generate a Graphql Type definition
    * from a database table
    * 
@@ -85,7 +109,7 @@ class Compiler {
   mapDbTableToGraphqlQuery(tablename) {
     const typeName = utils.toCamelCase(tablename)
     return 'getPage' + typeName 
-      + "(filter: String, pagination: String)"
+      + this.buildParamsFromObject({ filter: 'String', pagination: 'String' })
       + ": Page" + typeName;
   }
 
@@ -101,7 +125,7 @@ class Compiler {
   mapDbTableToGraphqlFirstOf(tablename) {
     const typeName = utils.toCamelCase(tablename);
     return 'getFirstOf' + typeName 
-      + "(filter: String, pagination: String)"
+      + this.buildParamsFromObject({ filter: 'String', pagination: 'String' })
       + ": " + utils.toCamelCase(tablename);
   }
 
@@ -115,16 +139,13 @@ class Compiler {
     const typeName = utils.toCamelCase(tablename)
     let string = 'putItem' + typeName;
     let columns = this.dbDriver.getTableColumnsFromSchema(tablename);
-    let vars = columns.map(col => {
+    let vars = {};
+    columns.forEach(col => {
       try {
-        return '    '+col+': ' 
-          + this.dbDriver.mapDbColumnToGraphqlType(col, this.dbSchema[tablename][col]);
-      } catch (err) {
-        return '';
-      }
+        vars[col] = this.dbDriver.mapDbColumnToGraphqlType(col, this.dbSchema[tablename][col]);
+      } catch (err) {}
     });
-    vars = vars.filter(v => v);
-    string += " (\n" + vars.join(",\n") + "\n  ): " + typeName;
+    string += this.buildParamsFromObject(vars) + ": " + typeName;
     return string;
   }
 

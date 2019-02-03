@@ -81,15 +81,22 @@ class DB2Graphql {
    */
   addType(gql) {
     this.compiler.addType(gql);
+    return this;
   }
 
   /**
    * Adds a Graphql query
    * 
-   * @param {String} gql 
+   * @param {String} name 
+   * @param {String} returns 
+   * @param {Function} resolver 
+   * @param {String} params 
    */
-  addQuery(gql) {
+  addQuery(name, returns, resolver, params = {}) {
+    const gql = this.compiler.buildQuery(name, returns, params);
     this.compiler.addQuery(gql);
+    this.addRawResolver('Query', name, resolver);
+    return this;
   }
 
   /**
@@ -97,8 +104,31 @@ class DB2Graphql {
    * 
    * @param {String} gql 
    */
-  addMutation(gql) {
+  addMutation(name, returns, resolver, params = {}) {
+    const gql = this.compiler.buildQuery(name, returns, params);
     this.compiler.addMutation(gql);
+    this.addRawResolver('Mutation', name, resolver);
+    return this;
+  }
+
+  /**
+   * Adds a Graphql query
+   * 
+   * @param {String} gql 
+   */
+  addRawQuery(gql) {
+    this.compiler.addQuery(gql);
+    return this;
+  }
+
+  /**
+   * Adds a Graphql mutation
+   * 
+   * @param {String} gql 
+   */
+  addRawMutation(gql) {
+    this.compiler.addMutation(gql);
+    return this;
   }
 
   /**
@@ -108,8 +138,9 @@ class DB2Graphql {
    * @param {String} name 
    * @param {Function} cb 
    */
-  addResolver(namespace, name, cb) {
+  addRawResolver(namespace, name, cb) {
     this.resolver.add(namespace, name, cb);
+    return this;
   }
 
   /**
@@ -122,6 +153,7 @@ class DB2Graphql {
    */
   override(name, cb) {
     this.resolver.on(name, cb);
+    return this;
   }
 
   /**
@@ -129,25 +161,16 @@ class DB2Graphql {
    */
   withBuilder() {
 
+    let resolver;
+
     // Add getSchema
-    this.addQuery(`
-  getSchema: String
-`);
-    this.addResolver('Query', 'getSchema', async (root, args, context) => {
+    resolver = async () => {
       return JSON.stringify(this.dbSchema);
-    });
+    };
+    this.addQuery("getSchema", "String", resolver);
 
     // Add addSchemaColumn
-    const queryAlterColumn = `
-  addSchemaColumn(
-    tablename: String!
-    columnname: String!
-    type: String!
-    foreign: String
-  ): Boolean
-`;
-    this.addQuery(queryAlterColumn);
-    this.addResolver('Query', 'addSchemaColumn', async (root, args, context) => {
+    resolver = async (root, args, context) => {
       const { resolver, db } = context.ioc;
       const types = resolver.dbDriver.constructor.getAvailableTypes();
       if (types.indexOf(args.type) === -1) return false;
@@ -162,17 +185,17 @@ class DB2Graphql {
       } catch(err) {
         return false;
       }
-    });
+    }
+    const queryAlterColumnParams = {
+      tablename: 'String!',
+      columnname: 'String!',
+      type: 'String!',
+      foreign: 'String',
+    };
+    this.addQuery('addSchemaColumn', 'Boolean', resolver, queryAlterColumnParams);
 
     // Add dropSchemaColumn
-    const queryDropColumn = `
-  dropSchemaColumn(
-    tablename: String!
-    columnname: String!
-  ): Boolean
-`;
-    this.addQuery(queryDropColumn);
-    this.addResolver('Query', 'dropSchemaColumn', async (root, args, context) => {
+    resolver = async (root, args, context) => {
       const { db } = context.ioc;
       try {
         await db.schema.table(args.tablename, table => {
@@ -182,19 +205,15 @@ class DB2Graphql {
       } catch (err) {
         return false;
       }
-    });
+    };
+    const queryDropColumnParams = {
+      tablename: 'String!',
+      columnname: 'String!'
+    };
+    this.addQuery('dropSchemaColumn', 'Boolean', resolver, queryDropColumnParams);
 
     // Add addSchemaTable
-    const queryAddTable = `
-  addSchemaTable(
-    tablename: String!
-    primary: String!
-    type: String!
-    increments: Boolean
-  ): Boolean
-`;
-    this.addQuery(queryAddTable);
-    this.addResolver('Query', 'addSchemaTable', async (root, args, context) => {
+    resolver = async (root, args, context) => {
       const { resolver, db } = context.ioc;
       const types = resolver.dbDriver.constructor.getAvailableTypes();
       if (types.indexOf(args.type) === -1) return false;
@@ -207,12 +226,17 @@ class DB2Graphql {
       } catch (err) {
         return false;
       }
-    });
+    };
+    const queryAddTableParams = {
+      tablename: 'String!',
+      primary: 'String!',
+      type: 'String!',
+      increments: 'Boolean'
+    };
+    this.addQuery('addSchemaTable', 'Boolean', resolver, queryAddTableParams);
 
     // Add dropSchemaTable
-    const dropSchemaTable = 'dropSchemaTable(tablename: String!): Boolean';
-    this.addQuery(dropSchemaTable);
-    this.addResolver('Query', 'dropSchemaTable', async (root, args, context) => {
+    resolver = async (root, args, context) => {
       const { db } = context.ioc;
       try {
         await db.schema.dropTable(args.tablename);
@@ -220,8 +244,11 @@ class DB2Graphql {
       } catch (err) {
         return false;
       }
-    });
+    };
+    this.addQuery('dropSchemaTable', 'Boolean', resolver, { tablename: 'String!' });
 
+    // Fluent interface
+    return this;
   }
 }
 
