@@ -16,6 +16,7 @@ class PostgreSQL {
   constructor(db, dbSchema = {}) {
     this.db = db;
     this.dbSchema = dbSchema;
+    this.cache = {};
   }
 
   /**
@@ -61,22 +62,19 @@ class PostgreSQL {
    * @param {String} tablename 
    * @param {Object} pagination 
    */
-  async page(tablename, args, depth = 1, cache = {}) {
+  async page(tablename, args, depth = 1) {
     if (depth > 4) return;
 
     let query = this.db(tablename);
     (args) && this.addWhereFromArgs(tablename, query, args);
     (args) && this.addPaginationFromArgs(tablename, query, args);
+    if (args._debug) console.log(query.toSQL().sql, query.toSQL().bindings);
     const items = await query;
 
     // Add to cache
     const pk = this.getPrimaryKeyFromSchema(tablename);
-    if (!cache[tablename]) cache[tablename] = {};
-    for (let i = 0; i < items.length; i++) cache[tablename][items[i][pk]] = items[i];
-
-    // Load reverse relations
-    await this.loadForeignItems(items, tablename, args, depth+1, cache);
-    await this.loadReverseItems(items, tablename, args, depth+1, cache);
+    if (!this.cache[tablename]) this.cache[tablename] = {};
+    for (let i = 0; i < items.length; i++) this.cache[tablename][items[i][pk]] = items[i];
     return items;
   }
 
@@ -107,18 +105,13 @@ class PostgreSQL {
     // Load item
     let query = this.db(tablename);
     (args) && this.addWhereFromArgs(tablename, query, args);
+    if (args._debug) console.log(query.toSQL().sql, query.toSQL().bindings);
     const item = await query.first();
 
     // Add to cache
     const pk = this.getPrimaryKeyFromSchema(tablename);
     if (!cache[tablename]) cache[tablename] = {}
     cache[tablename][item[pk]] = item;
-
-    // Load relations
-    await this.loadForeignItems([item], tablename, args, depth+1, cache);
-    await this.loadReverseItems([item], tablename, args, depth+1, cache);
-
-    // Return item
     return item; 
   }
 
@@ -263,10 +256,9 @@ class PostgreSQL {
         // Load and assign
         const results = await this.loadItemsIn(ftablename, fcolumnname, ids, args, cache);
         for (let j = 0; j < items.length; j++) {
-          items[j][ftablename] = cache[ftablename][items[j][column.name]];
+          const item = results.find(r => ''+r[fcolumnname] === ''+items[j][column.name]);
+          items[j][ftablename] = item;
         }
-        await this.loadForeignItems(results, ftablename, args, depth+1, cache);
-        await this.loadReverseItems(results, ftablename, args, depth+1, cache);
       }
     }
   }
@@ -299,13 +291,11 @@ class PostgreSQL {
       let results = await this.loadItemsIn(ftablename, fcolumnname, ids, args, cache);
       for (let j = 0; j < results.length; j++) {
         const related = results[j];
-        const item = items.filter(i => ''+i[columnname] === ''+related[fcolumnname]).pop();
-        if (!item[ftablename]) item[ftablename] = { total: 0, items: [] };
+        const item = items.find(i => ''+i[columnname] === ''+related[fcolumnname]);
+        if (typeof item[ftablename] === 'undefined') item[ftablename] = { total: 0, items: [] };
         item[ftablename].items.push(related);
         item[ftablename].total = item[ftablename].items.length;
       }
-      await this.loadForeignItems(results, ftablename, args, depth+1, cache);
-      await this.loadReverseItems(results, ftablename, args, depth+1, cache);
     }
   }
 
@@ -318,30 +308,39 @@ class PostgreSQL {
    * @param {String} args 
    * @param {Object} cache 
    */
-  async loadItemsIn(tablename, columnname, ids, args, cache = {}) {
-    const results = [], missing = [], tids = ids.filter(i => i);
+  async loadItemsIn(tablename, columnname, ids, args) {
+    let results = [], missing = [], tids = ids.filter(i => i);
 
-    // Load from cache
-    const hasFilter = args && args.filter && args.filter[tablename];
-    tids.forEach(id => {
-      if (hasFilter) missing.push(id);
-      else if (cache[tablename] && cache[tablename][id]) results.push(cache[tablename][id]);
-      else missing.push(id);
-    });
+    const pk = this.getPrimaryKeyFromSchema(tablename);
+    if (!this.cache[tablename]) this.cache[tablename] = {};
+
+    // Skip cache lookup
+    if (args._cache === false) missing = tids;
+    else {
+
+      // Load from cache
+      const tableCache = Object.keys(this.cache[tablename])
+        .map(cid => this.cache[tablename][cid]);
+      tids.forEach(id => {
+        const found = tableCache.filter(item => ''+item[columnname] === ''+id);
+        if (found.length) results = results.concat(found);
+        else missing.push(id);
+      });
+    }
 
     // Load missing from database
     if (missing.length) {
-      const pk = this.getPrimaryKeyFromSchema(tablename);
+      const hasFilter = args && args.filter && args.filter[tablename];
       let localArgs = { filter: {}, pagination: {} };
       localArgs.filter[tablename] = [['#', columnname, missing.join(',')]];
       let originFilter = hasFilter ? args.filter[tablename] : [];
       localArgs.filter[tablename] = localArgs.filter[tablename].concat(originFilter);
       let query = this.db(tablename);
       this.addWhereFromArgs(tablename, query, localArgs);
+      if (args._debug) console.log(query.toSQL().sql, query.toSQL().bindings);
       const loaded = await query;
-      if (!cache[tablename]) cache[tablename] = {};
       for (let i = 0; i < loaded.length; i++) {
-        cache[tablename][loaded[i][pk]] = loaded[i];
+        this.cache[tablename][loaded[i][pk]] = loaded[i];
         results.push(loaded[i]);
       }
     }

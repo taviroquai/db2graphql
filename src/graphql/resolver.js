@@ -1,6 +1,11 @@
 const utils = require('../utils/utils');
 
 /**
+ * In memory cache
+ */
+const cache = {};
+
+/**
  * Graphql resolver
  * 
  * By using a database schema and driver,
@@ -62,7 +67,8 @@ class Resolver {
    * @param {String} tablename 
    * @param {Object} args 
    */
-  async getPage(tablename, args) {
+  async getPage(tablename, args, context) {
+    context._rootArgs = args;
     args = this.parseArgs('getPage', args);
     const total = await this.dbDriver.pageTotal(tablename, args);
     const items = await this.dbDriver.page(tablename, args);
@@ -77,7 +83,8 @@ class Resolver {
    * @param {String} tablename 
    * @param {Object} args 
    */
-  async getFirstOf(tablename, args) {
+  async getFirstOf(tablename, args, context) {
+    context._rootArgs = args;
     args = this.parseArgs('getFirstOf', args);
     return await this.dbDriver.firstOf(tablename, args)
   }
@@ -92,6 +99,9 @@ class Resolver {
    */
   async putItem(tablename, data) {
     const pk = this.dbDriver.getPrimaryKeyFromSchema(tablename);
+
+    // Filter data
+    delete data['_debug'];
 
     // Store item
     const result = await this.dbDriver.putItem(tablename, data);
@@ -160,9 +170,10 @@ class Resolver {
    * @param {Object} args 
    */
   parseArgsCommon(args) {
-    if (args.filter) args.filter = this.parseFilterExpression(args.filter);
-    if (args.pagination) args.pagination = this.parsePaginationExpression(args.pagination);
-    return args;
+    let localArgs = Object.assign({}, args);
+    if (args.filter) localArgs.filter = this.parseFilterExpression(args.filter);
+    if (args.pagination) localArgs.pagination = this.parsePaginationExpression(args.pagination);
+    return localArgs;
   }
 
   /**
@@ -196,7 +207,7 @@ class Resolver {
         context.ioc = { resolver: this, tablename, db: this.dbDriver.db };
         return await this.overrides[queryName](root, args, context);
       }
-      return await cb(tablename, args);
+      return await cb(tablename, args, context);
     }
   }
 
@@ -217,6 +228,38 @@ class Resolver {
       context.ioc = { resolver: this, db };
       return await cb(root, args, context);
     }
+  }
+
+  createForeignFieldsResolvers(tablename) {
+    const queryName = utils.toCamelCase(tablename);
+    const columns = this.dbDriver.getTableColumnsFromSchema(tablename);
+    columns.map(c => {
+      const column = this.dbDriver.dbSchema[tablename][c];
+      if (column.__foreign) {
+        const field = column.__foreign.tablename;
+        if (!this.resolvers[queryName]) this.resolvers[queryName] = {};
+        this.resolvers[queryName][field] = async (item, args, context) => {
+          let { _rootArgs } = context;
+          args = this.parseArgsCommon(_rootArgs);
+          await this.dbDriver.loadForeignItems([item], tablename, args);
+          return item[field];
+        }
+      }
+    });
+  }
+
+  createReverseRelationsResolvers(tablename) {
+    const queryName = utils.toCamelCase(tablename);
+    this.dbDriver.dbSchema[tablename].__reverse.map(r => {
+      let field = r.ftablename;
+      if (!this.resolvers[queryName]) this.resolvers[queryName] = {};
+      this.resolvers[queryName][field] = async (item, args, context) => {
+        let { _rootArgs } = context;
+        args = this.parseArgsCommon(_rootArgs);
+        await this.dbDriver.loadReverseItems([item], tablename, args);
+        return item[field];
+      }
+    });
   }
 
   /**
@@ -240,6 +283,12 @@ class Resolver {
         this.resolvers.Query[queryName] = this.contextOverload('getFirstOf', tablename, this.getFirstOf.bind(this));
         queryName = 'putItem' + typeName;
         this.resolvers.Mutation[queryName] = this.contextOverload('putItem', tablename, this.putItem.bind(this));
+
+        // Add foreign fields resolvers
+        this.createForeignFieldsResolvers(tablename);
+
+        // Add inverse relations resolvers
+        this.createReverseRelationsResolvers(tablename);
       }
     }
 

@@ -15,9 +15,10 @@ const start = async (cb) => {
   // Create Apollo Server and start
   if (!schema) throw new Error('Error: empty schema');
   console.log(schema);
+  console.log(resolvers);
   const server = new ApolloServer({
     typeDefs: gql`${schema}`,
-    resolvers,
+    resolvers
   });
   server.listen().then(({ url }) => {
     console.log(`🚀 Server ready at ${url}`);

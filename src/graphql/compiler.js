@@ -107,9 +107,10 @@ class Compiler {
    * @param {String} tablename 
    */
   mapDbTableToGraphqlQuery(tablename) {
-    const typeName = utils.toCamelCase(tablename)
+    const typeName = utils.toCamelCase(tablename);
+    const params = { filter: 'String', pagination: 'String', _debug: 'Boolean', _cache: 'Boolean' };
     return 'getPage' + typeName 
-      + this.buildParamsFromObject({ filter: 'String', pagination: 'String' })
+      + this.buildParamsFromObject(params)
       + ": Page" + typeName;
   }
 
@@ -124,8 +125,9 @@ class Compiler {
    */
   mapDbTableToGraphqlFirstOf(tablename) {
     const typeName = utils.toCamelCase(tablename);
+    const params = { filter: 'String', pagination: 'String', _debug: 'Boolean', _cache: 'Boolean' };
     return 'getFirstOf' + typeName 
-      + this.buildParamsFromObject({ filter: 'String', pagination: 'String' })
+      + this.buildParamsFromObject(params)
       + ": " + utils.toCamelCase(tablename);
   }
 
@@ -139,7 +141,7 @@ class Compiler {
     const typeName = utils.toCamelCase(tablename)
     let string = 'putItem' + typeName;
     let columns = this.dbDriver.getTableColumnsFromSchema(tablename);
-    let vars = {};
+    let vars = { _debug: 'Boolean' };
     columns.forEach(col => {
       try {
         vars[col] = this.dbDriver.mapDbColumnToGraphqlType(col, this.dbSchema[tablename][col]);
