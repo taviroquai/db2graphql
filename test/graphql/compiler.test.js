@@ -67,16 +67,16 @@ type PageFoo{
 
 type Query {
 
-  getPageBar(filter: String, pagination: String): PageBar
-  getFirstOfBar(filter: String, pagination: String): Bar
-  getPageFoo(filter: String, pagination: String): PageFoo
-  getFirstOfFoo(filter: String, pagination: String): Foo
+  getPageBar(filter: String, pagination: String, _debug: Boolean, _cache: Boolean): PageBar
+  getFirstOfBar(filter: String, pagination: String, _debug: Boolean, _cache: Boolean): Bar
+  getPageFoo(filter: String, pagination: String, _debug: Boolean, _cache: Boolean): PageFoo
+  getFirstOfFoo(filter: String, pagination: String, _debug: Boolean, _cache: Boolean): Foo
 }
 
 type Mutation {
 
-  putItemBar(bar: Int, foo: Int): Bar
-  putItemFoo(bar: Int): Foo
+  putItemBar(_debug: Boolean, bar: Int, foo: Int): Bar
+  putItemFoo(_debug: Boolean, bar: Int): Foo
 }`
 
 const invaliddbSchema = {
@@ -125,7 +125,7 @@ test('it should create a getPage definition for tablename', () => {
   const dbDriver = new PostgreSQL(null, dbSchema);
   const compiler = new Compiler(dbDriver, dbSchema);
   let result = compiler.mapDbTableToGraphqlQuery('foo');
-  let expected = "getPageFoo(filter: String, pagination: String): PageFoo";
+  let expected = "getPageFoo(filter: String, pagination: String, _debug: Boolean, _cache: Boolean): PageFoo";
   expect(result).toEqual(expected);
 });
 
@@ -133,7 +133,7 @@ test('it should create a getFirstOf definition for tablename', () => {
   const dbDriver = new PostgreSQL(null, dbSchema);
   const compiler = new Compiler(dbDriver, dbSchema);
   let result = compiler.mapDbTableToGraphqlFirstOf('foo');
-  let expected = "getFirstOfFoo(filter: String, pagination: String): Foo";
+  let expected = "getFirstOfFoo(filter: String, pagination: String, _debug: Boolean, _cache: Boolean): Foo";
   expect(result).toEqual(expected);
 });
 
@@ -141,14 +141,14 @@ test('it should create a putItem definition for tablename', () => {
   const dbDriver = new PostgreSQL(db, dbSchema);
   const compiler = new Compiler(dbSchema, dbDriver);
   let result = compiler.mapDbTableToGraphqlMutation('foo');
-  expect(result).toEqual("putItemFoo(bar: Int): Foo");
+  expect(result).toEqual("putItemFoo(_debug: Boolean, bar: Int): Foo");
 });
 
 test('invalid field on create putItem definition', () => {
   const dbDriver = new PostgreSQL(null, invaliddbSchema);
   const compiler = new Compiler(invaliddbSchema, dbDriver);
   let result = compiler.mapDbTableToGraphqlMutation('bar');
-  expect(result).toEqual("putItemBar: Bar");
+  expect(result).toEqual("putItemBar(_debug: Boolean): Bar");
 });
 
 test('it should create a complete dbSchema definition', () => {

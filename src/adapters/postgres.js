@@ -1,3 +1,5 @@
+const hash = require('string-hash-64');
+
 /**
  * Available types
  */
@@ -65,16 +67,21 @@ class PostgreSQL {
   async page(tablename, args, depth = 1) {
     if (depth > 4) return;
 
+    // Load from cache
+    const key = this.getCacheKey(tablename, 'page', [], args);
+    if (!this.cache[tablename]) this.cache[tablename] = {};
+    if (args._cache !== false && this.cache[tablename][key]) {
+      if (args._debug) console.log('cache hit:', key);
+      return this.cache[tablename][key];
+    }
+
+    // Load items
     let query = this.db(tablename);
     (args) && this.addWhereFromArgs(tablename, query, args);
     (args) && this.addPaginationFromArgs(tablename, query, args);
-    if (args._debug) console.log(query.toSQL().sql, query.toSQL().bindings);
+    if (args._debug) console.log('db hit:', query.toSQL().sql, query.toSQL().bindings);
     const items = await query;
-
-    // Add to cache
-    const pk = this.getPrimaryKeyFromSchema(tablename);
-    if (!this.cache[tablename]) this.cache[tablename] = {};
-    for (let i = 0; i < items.length; i++) this.cache[tablename][items[i][pk]] = items[i];
+    this.cache[tablename][key] = items;
     return items;
   }
 
@@ -105,14 +112,8 @@ class PostgreSQL {
     // Load item
     let query = this.db(tablename);
     (args) && this.addWhereFromArgs(tablename, query, args);
-    if (args._debug) console.log(query.toSQL().sql, query.toSQL().bindings);
-    const item = await query.first();
-
-    // Add to cache
-    const pk = this.getPrimaryKeyFromSchema(tablename);
-    if (!cache[tablename]) cache[tablename] = {}
-    cache[tablename][item[pk]] = item;
-    return item; 
+    if (args._debug) console.log('db hit:', query.toSQL().sql, query.toSQL().bindings);
+    return await query.first();
   }
 
   /**
@@ -225,78 +226,12 @@ class PostgreSQL {
     return await this.db.raw(sql, params);
   }
 
-  /**
-   * Eager loading of related records
-   * using foreign keys.
-   * Limited by max depth
-   * 
-   * @param {Array} items 
-   * @param {String} tablename 
-   * @param {object} args
-   * @param {Number} depth
-   * @param {Object} cache 
-   */
-  async loadForeignItems(items, tablename, args, depth = 1, cache = {}) {
-    if (depth > 3) return;
-
-    // Find all foreign keys
-    let columns = this.getTableColumnsFromSchema(tablename);
-    for (let i = 0; i < columns.length; i++) {
-      let column = this.dbSchema[tablename][columns[i]];
-      if (column.__foreign) {
-        const ftablename = column.__foreign.tablename;
-        const fcolumnname = column.__foreign.columnname;
-
-        // Collect ids
-        const ids = items.map(i => i[column.name]).reduce((a,b) => {
-          if (a.indexOf(b) < 0 ) a.push(b);
-          return a;
-        },[]);
-
-        // Load and assign
-        const results = await this.loadItemsIn(ftablename, fcolumnname, ids, args, cache);
-        for (let j = 0; j < items.length; j++) {
-          const item = results.find(r => ''+r[fcolumnname] === ''+items[j][column.name]);
-          items[j][ftablename] = item;
-        }
-      }
-    }
-  }
-
-  /**
-   * Eager loading of inverse related records
-   * Limited by max depth
-   * 
-   * @param {Array} items 
-   * @param {String} tablename 
-   * @param {Object} args 
-   * @param {Number} depth 
-   * @param {Object} cache
-   */
-  async loadReverseItems(items, tablename, args, depth = 1, cache = {}) {
-    if (depth > 3) return;
-
-    // Collect ids
-    const pk = this.getPrimaryKeyFromSchema(tablename);
-    const ids = items.map(i => i[pk]);
-
-    // Get all relations
-    const relations = this.dbSchema[tablename].__reverse;
-    for (let i = 0; i < relations.length; i++) {
-      const ftablename = relations[i].ftablename;
-      const fcolumnname = relations[i].fcolumnname;
-      const columnname = relations[i].columnname;
-      
-      // Load related
-      let results = await this.loadItemsIn(ftablename, fcolumnname, ids, args, cache);
-      for (let j = 0; j < results.length; j++) {
-        const related = results[j];
-        const item = items.find(i => ''+i[columnname] === ''+related[fcolumnname]);
-        if (typeof item[ftablename] === 'undefined') item[ftablename] = { total: 0, items: [] };
-        item[ftablename].items.push(related);
-        item[ftablename].total = item[ftablename].items.length;
-      }
-    }
+  getCacheKey(tablename, columnname, ids, args) {
+    const filteredArgs = { filter: args.filter, pagination: args.pagination };
+    let key = tablename + columnname + ids.join(',') + JSON.stringify(filteredArgs);
+    key = String(hash(key));
+    //console.log('key', key, tablename, columnname, ids.join(','), JSON.stringify(filteredArgs));
+    return key;
   }
 
   /**
@@ -309,41 +244,27 @@ class PostgreSQL {
    * @param {Object} cache 
    */
   async loadItemsIn(tablename, columnname, ids, args) {
-    let results = [], missing = [], tids = ids.filter(i => i);
-
-    const pk = this.getPrimaryKeyFromSchema(tablename);
+    let tids = ids.filter(i => i);
+    const hasFilter = args && args.filter && args.filter[tablename];
+    let localArgs = { filter: {}, pagination: {} };
+    localArgs.filter[tablename] = [['#', columnname, tids.join(',')]];
+    let originFilter = hasFilter ? args.filter[tablename] : [];
+    localArgs.filter[tablename] = localArgs.filter[tablename].concat(originFilter);
+    
+    // Load from cache
+    const key = this.getCacheKey(tablename, 'page', ids, localArgs);
     if (!this.cache[tablename]) this.cache[tablename] = {};
-
-    // Skip cache lookup
-    if (args._cache === false) missing = tids;
-    else {
-
-      // Load from cache
-      const tableCache = Object.keys(this.cache[tablename])
-        .map(cid => this.cache[tablename][cid]);
-      tids.forEach(id => {
-        const found = tableCache.filter(item => ''+item[columnname] === ''+id);
-        if (found.length) results = results.concat(found);
-        else missing.push(id);
-      });
+    if (args._cache !== false && this.cache[tablename][key]) {
+      if (args._debug) console.log('cache hit:', key);
+      return this.cache[tablename][key];
     }
 
-    // Load missing from database
-    if (missing.length) {
-      const hasFilter = args && args.filter && args.filter[tablename];
-      let localArgs = { filter: {}, pagination: {} };
-      localArgs.filter[tablename] = [['#', columnname, missing.join(',')]];
-      let originFilter = hasFilter ? args.filter[tablename] : [];
-      localArgs.filter[tablename] = localArgs.filter[tablename].concat(originFilter);
-      let query = this.db(tablename);
-      this.addWhereFromArgs(tablename, query, localArgs);
-      if (args._debug) console.log(query.toSQL().sql, query.toSQL().bindings);
-      const loaded = await query;
-      for (let i = 0; i < loaded.length; i++) {
-        this.cache[tablename][loaded[i][pk]] = loaded[i];
-        results.push(loaded[i]);
-      }
-    }
+    // Load from database
+    let query = this.db(tablename);
+    this.addWhereFromArgs(tablename, query, localArgs);
+    if (args._debug) console.log('db hit:', key, query.toSQL().sql, query.toSQL().bindings);
+    const results = await query;
+    this.cache[tablename][key] = results;
     return results;
   }
 

@@ -77,13 +77,13 @@ type PageFoo{
 
 type Query {
 
-  getPageFoo(filter: String, pagination: String): PageFoo
-  getFirstOfFoo(filter: String, pagination: String): Foo
+  getPageFoo(filter: String, pagination: String, _debug: Boolean, _cache: Boolean): PageFoo
+  getFirstOfFoo(filter: String, pagination: String, _debug: Boolean, _cache: Boolean): Foo
 }
 
 type Mutation {
 
-  putItemFoo(bar: Int): Foo
+  putItemFoo(_debug: Boolean, bar: Int): Foo
 }`
     const api = new db2g(db);
     await api.connect();

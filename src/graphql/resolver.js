@@ -230,6 +230,12 @@ class Resolver {
     }
   }
 
+  /**
+   * Create relation resolver for foreign key
+   * 
+   * @todo Refactor to smaller complexity
+   * @param {String} tablename 
+   */
   createForeignFieldsResolvers(tablename) {
     const queryName = utils.toCamelCase(tablename);
     const columns = this.dbDriver.getTableColumnsFromSchema(tablename);
@@ -237,27 +243,37 @@ class Resolver {
       const column = this.dbDriver.dbSchema[tablename][c];
       if (column.__foreign) {
         const field = column.__foreign.tablename;
+        const fcolumnname = column.__foreign.columnname;
         if (!this.resolvers[queryName]) this.resolvers[queryName] = {};
         this.resolvers[queryName][field] = async (item, args, context) => {
           let { _rootArgs } = context;
           args = this.parseArgsCommon(_rootArgs);
-          await this.dbDriver.loadForeignItems([item], tablename, args);
-          return item[field];
+          const ids = [item[column.name]];
+          const related = await this.dbDriver.loadItemsIn(field, fcolumnname, ids, args);
+          return related.length ? related[0] : null;
         }
       }
     });
   }
 
+  /**
+   * Create inverse relation resolver
+   * 
+   * @todo Refactor to smaller complexity
+   * @param {String} tablename 
+   */
   createReverseRelationsResolvers(tablename) {
     const queryName = utils.toCamelCase(tablename);
     this.dbDriver.dbSchema[tablename].__reverse.map(r => {
       let field = r.ftablename;
+      const fcolumnname = r.fcolumnname;
       if (!this.resolvers[queryName]) this.resolvers[queryName] = {};
       this.resolvers[queryName][field] = async (item, args, context) => {
         let { _rootArgs } = context;
         args = this.parseArgsCommon(_rootArgs);
-        await this.dbDriver.loadReverseItems([item], tablename, args);
-        return item[field];
+        const related = await this.dbDriver.loadItemsIn(field, fcolumnname, [item[r.columnname]], args);
+        const result = { total: related.length, items: related };
+        return result;
       }
     });
   }

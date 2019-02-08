@@ -39,7 +39,7 @@ test('it should return a page of items', async (done) => {
   }
   const dbDriver = new MockDriver();
   const resolver = new Resolver(dbDriver);
-  const result = await resolver.getPage('foo', {});
+  const result = await resolver.getPage('foo', {}, {});
   const expected = {"items": [{"id": 1}], "tablename": "foo", "total": 1};
   expect(result).toEqual(expected);
   done();
@@ -55,7 +55,7 @@ test('it should return one item', async (done) => {
   }
   const dbDriver = new MockDriver();
   const resolver = new Resolver(dbDriver);
-  const result = await resolver.getFirstOf('foo', {});
+  const result = await resolver.getFirstOf('foo', {}, {});
   const expected = {id:1};
   expect(result).toEqual(expected);
   done();
@@ -217,6 +217,10 @@ test('it should create a default resolver', async (done) => {
 
 test('it should create a resolver overloaded with context ioc', async (done) => {
   const MockDriver = function() {
+    this.dbSchema = { foo: { __reverse: [], foo: {} }}
+    this.getTableColumnsFromSchema = () => {
+      return ['foo'];
+    }
     this.getTablesFromSchema = () => {
       return ['foo'];
     }
@@ -238,13 +242,7 @@ test('it should create a resolver overloaded with context ioc', async (done) => 
 });
 
 test('it should add user-made resorver', async (done) => {
-  const MockDriver = function() {
-    this.getTablesFromSchema = () => {
-      return ['foo'];
-    }
-  }
-  const dbDriver = new MockDriver();
-  const resolver1 = new Resolver(dbDriver);
+  const resolver1 = new Resolver();
   const callback = async (root, args, context) => {
     const { resolver } = context.ioc;
     expect(resolver).toEqual(resolver1);

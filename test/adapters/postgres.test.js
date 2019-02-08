@@ -398,93 +398,21 @@ describe('Postgres Driver', () => {
 
     const adapter = new PostgreSQL(db);
     await adapter.getSchema('public');
-    let result = await adapter.loadItemsIn('bar', 'foo', [1, 2]);
+    let result = await adapter.loadItemsIn('bar', 'foo', [1, 2], {});
     expect(result).toEqual(expected);
-    let cache = {};
-    result = await adapter.loadItemsIn('bar', 'foo', [1, 2], cache);
+    result = await adapter.loadItemsIn('bar', 'foo', [1, 2], {});
     expect(result).toEqual(expected);
-    cache = { bar: {}};
-    result = await adapter.loadItemsIn('bar', 'foo', [1, 2], cache);
+    result = await adapter.loadItemsIn('bar', 'foo', [1, 2], {});
     expect(result).toEqual(expected);
-    cache = { bar: {'1': { foo: 1, bar: 1 }}};
-    result = await adapter.loadItemsIn('bar', 'foo', [1, 2], cache);
+    result = await adapter.loadItemsIn('bar', 'foo', [1, 2], {});
     expect(result).toEqual(expected);
 
     // Test with args
     let args = { filter: { bar: [[ '=', 'bar', 2 ]] } };
-    cache = { bar: {'1': { foo: 1, bar: 1 }}};
-    result = await adapter.loadItemsIn('bar', 'foo', [1, 2], args, cache);
+    result = await adapter.loadItemsIn('bar', 'foo', [1, 2], args);
     expect(result).toEqual([{ foo: 2, bar: 2 }]);
     
     done();
   });
 
-  test('it should load foreign records', async (done) => {
-    
-    // Setup database
-    const db = knex(connection);
-    await db.schema.dropTableIfExists('bar');
-    await db.schema.dropTableIfExists('foo');
-    await db.schema.createTable('foo', (table) => {
-      table.integer('id').primary();
-    });
-    await db.schema.createTable('bar', (table) => {
-      table.integer('id').primary();
-      table.integer('bar_id');
-      table.foreign('bar_id').references('foo.id')
-    });
-    await db('foo').insert({ id: 1 });
-    await db('foo').insert({ id: 2 });
-    await db('bar').insert({ id: 1, bar_id: 1 });
-    await db('bar').insert({ id: 2, bar_id: 2 });
-    let items;
-
-    const adapter = new PostgreSQL(db);
-    await adapter.getSchema('public');
-
-    // Assert
-    items = [{ foo: 1, bar_id: 1 }];
-    expected = { id: 1 };
-    await adapter.loadForeignItems(items, 'bar', {});
-    delete items[0].foo.bar; // Remove circular references
-    expect(typeof items[0].foo).toEqual('object')
-    expect(items[0].foo).toEqual(expected);
-    done();
-  });
-
-  test('it should load reverse related records', async (done) => {
-    
-    // Setup database
-    const db = knex(connection);
-    await db.schema.dropTableIfExists('bar');
-    await db.schema.dropTableIfExists('foo');
-    await db.schema.createTable('foo', (table) => {
-      table.integer('id').primary();
-    });
-    await db.schema.createTable('bar', (table) => {
-      table.integer('id').primary();
-      table.integer('foo_id');
-      table.foreign('foo_id').references('foo.id')
-    });
-    await db('foo').insert({ id: 1 });
-    await db('foo').insert({ id: 2 });
-    await db('bar').insert({ id: 1, foo_id: 1 });
-    await db('bar').insert({ id: 2, foo_id: 1 });
-    let items;
-
-    const adapter = new PostgreSQL(db);
-    await adapter.getSchema('public');
-
-    // Assert
-    items = [{ id: 1 }];
-    expected = { total: 2, items: [{ id: 1, foo_id: 1 }, { id: 2, foo_id: 1 }] };
-    await adapter.loadReverseItems(items, 'foo', {});
-    delete items[0].bar.items[0].foo; // Remove circular references
-    delete items[0].bar.items[1].foo; // Remove circular references
-    expect(typeof items[0].bar).toEqual('object')
-    expect(typeof items[0].bar.items).toEqual('object');
-    expect(typeof items[0].bar.total).toEqual('number')
-    expect(items[0].bar).toEqual(expected);
-    done();
-  });
 });

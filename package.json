@@ -22,7 +22,9 @@
   ],
   "author": "Marco Afonso",
   "license": "MIT",
-  "dependencies": {},
+  "dependencies": {
+    "string-hash-64": "^1.0.3"
+  },
   "devDependencies": {
     "apollo-server": "^2.3.1",
     "coveralls": "^3.0.2",
