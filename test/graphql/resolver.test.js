@@ -1,5 +1,44 @@
 const Resolver = require('../../src/graphql/resolver');
 
+
+const dbSchema = {
+  "bar": {
+    "__pk": "foo",
+    "__reverse": [],
+    "bar": {
+      "__foreign": {
+        "columnname": "bar",
+        "schemaname": "public",
+        "tablename": "foo"
+      },
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "name": "bar"
+    },
+    "foo": {
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "name": "foo"
+    }
+  },
+  "foo": {
+    "__pk": "bar",
+    "__reverse": [
+      {
+        "columnname": "bar",
+        "fcolumnname": "bar",
+        "fschemaname": "public",
+        "ftablename": "bar"
+      }
+    ],
+    "bar": {
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "name": "bar"
+    }
+  }
+};
+
 test('it should create a new Graphql resolver', () => {
   const resolver = new Resolver();
   expect(resolver instanceof Resolver).toBe(true);
@@ -238,6 +277,56 @@ test('it should create a resolver overloaded with context ioc', async (done) => 
   expect(typeof result.Query).toEqual('object');
   expect(typeof result.Query.getFirstOfFoo).toEqual('function');
   expect(typeof result.Query.getPageFoo).toEqual('function');
+  done();
+});
+
+test('it should create a resolver for a foreign relationship', async (done) => {
+  const MockDriver = function() {
+    this.dbSchema = dbSchema;
+    this.getTableColumnsFromSchema = () => ['bar', 'foo'];
+    this.loadItemsIn = () => [{}];
+  }
+  let dbDriver = new MockDriver();
+  const resolver = new Resolver(dbDriver);
+  resolver.createForeignFieldsResolvers('bar');
+  let resolvers = resolver.resolvers; 
+
+  // Assert
+  expect(typeof resolvers).toEqual('object');
+  expect(typeof resolvers.Bar).toEqual('object');
+  expect(typeof resolvers.Bar.foo).toEqual('function');
+
+  // Test resolver
+  let result = await resolvers.Bar.foo({}, {}, { _rootArgs: {}});
+  expect(typeof result).toBe('object');
+
+  // Test empty result
+  dbDriver.loadItemsIn = () => [];
+  result = await resolvers.Bar.foo({}, {}, { _rootArgs: {}});
+  expect(result).toBeNull();
+  done();
+});
+
+test('it should create a resolver for a reverse relationship', async (done) => {
+  const MockDriver = function() {
+    this.dbSchema = dbSchema;
+    this.loadItemsIn = () => []
+  }
+  const dbDriver = new MockDriver();
+  const resolver = new Resolver(dbDriver);
+  resolver.createReverseRelationsResolvers('foo');
+  let result = resolver.resolvers; 
+
+  // Assert
+  expect(typeof result).toEqual('object');
+  expect(typeof result.Foo).toEqual('object');
+  expect(typeof result.Foo.bar).toEqual('function');
+
+  // Test resolver
+  result = await result.Foo.bar({}, {}, { _rootArgs: {}});
+  expect(typeof result).toBe('object');
+  expect(typeof result.total).toBe('number');
+  expect(Array.isArray(result.items)).toBe(true);
   done();
 });
 

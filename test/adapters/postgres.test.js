@@ -119,7 +119,6 @@ describe('Postgres Driver', () => {
     // Fixtures
     const schema = { foo: [] };
     schema.foo.__pk = 'id';
-    schema.foo.__reverse = [];
     const db = knex(connection);
     await db.schema.dropTableIfExists('bar');
     await db.schema.dropTableIfExists('foo');
@@ -129,8 +128,14 @@ describe('Postgres Driver', () => {
 
     // Test
     const adapter = new PostgreSQL(db, schema);
-    const result = await adapter.page('foo', {});
-    expect(typeof result).toBe("object");
+    let result = await adapter.page('foo', { _debug: true });
+    expect(Array.isArray(result)).toBe(true);
+
+    // Test cache
+    result = await adapter.page('foo', {});
+    expect(Array.isArray(result)).toBe(true);
+    result = await adapter.page('foo', { _debug: true });
+    expect(Array.isArray(result)).toBe(true);
     done();
   });
 
@@ -170,7 +175,13 @@ describe('Postgres Driver', () => {
 
     // Test
     const adapter = new PostgreSQL(db, schema);
-    const result = await adapter.firstOf('foo', {});
+    let result = await adapter.firstOf('foo', { _debug: true });
+    expect(typeof result).toBe("object");
+
+    // Test cache
+    result = await adapter.firstOf('foo', {});
+    expect(typeof result).toBe("object");
+    result = await adapter.firstOf('foo', { _cache: true });
     expect(typeof result).toBe("object");
     done();
   });
@@ -409,6 +420,15 @@ describe('Postgres Driver', () => {
 
     // Test with args
     let args = { filter: { bar: [[ '=', 'bar', 2 ]] } };
+    result = await adapter.loadItemsIn('bar', 'foo', [1, 2], args);
+    expect(result).toEqual([{ foo: 2, bar: 2 }]);
+
+    // Test cache
+    args = { filter: { bar: [[ '=', 'bar', 2 ]] }, _debug: true, _cache: false };
+    result = await adapter.loadItemsIn('bar', 'foo', [1, 2], args);
+    expect(result).toEqual([{ foo: 2, bar: 2 }]);
+
+    args = { filter: { bar: [[ '=', 'bar', 2 ]] }, _debug: true };
     result = await adapter.loadItemsIn('bar', 'foo', [1, 2], args);
     expect(result).toEqual([{ foo: 2, bar: 2 }]);
     

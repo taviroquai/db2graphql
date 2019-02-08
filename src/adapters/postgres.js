@@ -59,13 +59,12 @@ class PostgreSQL {
   }
 
   /**
-   * Get table results using pagination
+   * Get a page of the table
    * 
    * @param {String} tablename 
-   * @param {Object} pagination 
+   * @param {Object} args 
    */
-  async page(tablename, args, depth = 1) {
-    if (depth > 4) return;
+  async page(tablename, args) {
 
     // Load from cache
     const key = this.getCacheKey(tablename, 'page', [], args);
@@ -99,15 +98,12 @@ class PostgreSQL {
   }
 
   /**
-   * Get first record using where condition
-   * Uses eager loading
+   * Get one record
    * 
    * @param {String} tablename 
    * @param {Object} args
-   * @param {Number} depth 
    */
-  async firstOf(tablename, args, depth = 1, cache = {}) {
-    if (depth > 4) return;
+  async firstOf(tablename, args) {
 
     // Load item
     let query = this.db(tablename);
@@ -118,7 +114,6 @@ class PostgreSQL {
 
   /**
    * Insert or update record
-   * TODO: detect primary key (but not composite)
    * 
    * @param {String} tablename 
    * @param {Object} data 
@@ -226,12 +221,18 @@ class PostgreSQL {
     return await this.db.raw(sql, params);
   }
 
+  /**
+   * Generate cache key
+   * 
+   * @param {String} tablename 
+   * @param {String} columnname 
+   * @param {Array} ids 
+   * @param {Object} args 
+   */
   getCacheKey(tablename, columnname, ids, args) {
     const filteredArgs = { filter: args.filter, pagination: args.pagination };
     let key = tablename + columnname + ids.join(',') + JSON.stringify(filteredArgs);
-    key = String(hash(key));
-    //console.log('key', key, tablename, columnname, ids.join(','), JSON.stringify(filteredArgs));
-    return key;
+    return String(hash(key));
   }
 
   /**
