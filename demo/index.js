@@ -12,10 +12,14 @@ const start = async (cb) => {
   const resolvers = api.getResolvers();
   /****************************************************** */
 
-  // Create Apollo Server and start
+  // Validate schema
   if (!schema) throw new Error('Error: empty schema');
   console.log(schema);
-  console.log(resolvers);
+  
+  // Remove password
+  resolvers.Users.password = () => null;
+
+  // Create Apollo Server and start
   const server = new ApolloServer({
     typeDefs: gql`${schema}`,
     resolvers
