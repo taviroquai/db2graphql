@@ -10,9 +10,9 @@ Generates a Graphql schema and resolvers from an existing relational database
 ## Features
 * Fully compatible with **express**, **koa**, **hapi** and **Apollo Server**
 * Converts an existing relational database (only PostgreSQL for now) schema to a JSON schema
-* Generates a Graphql schema (string) with few but convenient types, queries and mutations
+* Generates a Graphql SDL schema with convenient types, queries and mutations
 * Implements a generic Graphql resolver ready for API prototyping
-* Eager loading of related records based on foreign keys
+* Load related records based on foreign keys
 * Allows to add/override resolvers
 
 ## Demo
@@ -55,7 +55,7 @@ query {
 * Move to TypeScript
 * Add more and improve convenient API methods. Currently, only:
     1. getPage
-    1. getFirstOf
+    1. getFirst
     1. putItem
 
 ## Usage
@@ -132,17 +132,6 @@ const start = async (cb) => {
 }
 
 start();
-```
-
-### Implement specific resolvers
-```js
-api.override('getFirstOf', async (root, args, context) => {
-  const { resolver, tablename, db } = context.ioc;
-  if (tablename === 'categories') return await db('categories').first();
-
-   // You can still run the build-in resolver
-  return resolver.getFirstOf(tablename, args);
-});
 ```
 
 ### Example without database connection
