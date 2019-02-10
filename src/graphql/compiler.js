@@ -20,15 +20,10 @@ class Compiler {
     this.dbDriver = dbDriver;
 
     // Hold schema
-    this.types = [];
-    this.queries = [];
-    this.mutations = [];
-    this.dbTypes = [];
-    this.dbQueries = [];
-    this.dbMutations = [];
+    this.schema = {};
 
-    // Cache schema
-    this.cache = '';
+    // Cache sdl
+    this.sdl = '';
   }
 
   /**
@@ -62,60 +57,77 @@ class Compiler {
    * @param {String} tablename 
    */
   mapDbTableToGraphqlType(tablename) {
+    const field = utils.toCamelCase(tablename);
+    if (!this.schema[field]) this.schema[field] = {};
+    
+    // Add fields
     let columns = this.dbDriver.getTableColumnsFromSchema(tablename);
-    let fields = columns.map(k => {
+    columns.forEach(child => {
       try {
-        return "  " + k + ': ' 
-          + this.dbDriver.mapDbColumnToGraphqlType(k, this.dbSchema[tablename][k]);
-      } catch (err) {
-        return '';
-      }
+        this.schema[field][child] = {
+          name: child,
+          type: this.dbDriver.mapDbColumnToGraphqlType(child, this.dbSchema[tablename][child]),
+          params: {}
+        }
+      } catch (err) {}
     });
-    fields = fields.filter(i => i);
 
     // Add foreign relations
     columns.map(c => {
       let column = this.dbSchema[tablename][c];
       if (column.__foreign) {
-        fields.push("  " + column.__foreign.tablename + ": " + utils.toCamelCase(column.__foreign.tablename));
+        let child = column.__foreign.tablename;
+        this.schema[field][child] = {
+          name: child,
+          type: utils.toCamelCase(child),
+          params: {}
+        }
       }
     })
 
     // Add reverse relation
     this.dbSchema[tablename].__reverse.map(r => {
-      fields.push("  " + r.ftablename + ": Page" + utils.toCamelCase(r.ftablename));
+      let child = r.ftablename;
+      this.schema[field][child] = {
+        name: child,
+        type: 'Page' + utils.toCamelCase(child),
+        params: {}
+      }
     });
-    return 'type ' + utils.toCamelCase(tablename) + " {\n" + fields.join(",\n") + "\n}";
+
+    // Add pages
+    this.schema['Page' + field] = {
+      total: {
+        name: 'total',
+        type: 'Int',
+        params: {}
+      },
+      items: {
+        name: 'items',
+        type: [field]
+      }
+    }
   }
 
   /**
-   * Generate a convenient type of Page
-   * for a given database table
-   * 
-   * @param {String} tablename 
-   */
-  mapDbTableToGraphqlPage(tablename) {
-    const typeName = utils.toCamelCase(tablename)
-    return 'type Page' + typeName
-      + "{\n  total: Int,\n  tablename: String,\n  items: [" + typeName + "]\n}";
-  }
-
-  /**
-   * Generate a convenient getPage query
+   * Create a convenient getPage field
    * for paginated results
    * 
    * @param {String} tablename 
    */
   mapDbTableToGraphqlQuery(tablename) {
-    const typeName = utils.toCamelCase(tablename);
+    const field = utils.toCamelCase(tablename);
     const params = { filter: 'String', pagination: 'String', _debug: 'Boolean', _cache: 'Boolean' };
-    return 'getPage' + typeName 
-      + this.buildParamsFromObject(params)
-      + ": Page" + typeName;
+    if (!this.schema.Query) this.schema['Query'] = {};
+    this.schema.Query['getPage' + field] = {
+      name: 'getPage' + field,
+      type: 'Page' + field,
+      params
+    }
   }
 
   /**
-   * Generates a convenient getFirstOf query
+   * Create a convenient getFirstOf field
    * to get only one record from database.
    * 
    * Uses a simple filter that can be used
@@ -124,101 +136,98 @@ class Compiler {
    * @param {String} tablename 
    */
   mapDbTableToGraphqlFirstOf(tablename) {
-    const typeName = utils.toCamelCase(tablename);
+    const field = utils.toCamelCase(tablename);
     const params = { filter: 'String', pagination: 'String', _debug: 'Boolean', _cache: 'Boolean' };
-    return 'getFirstOf' + typeName 
-      + this.buildParamsFromObject(params)
-      + ": " + utils.toCamelCase(tablename);
+    if (!this.schema.Query) this.schema['Query'] = {};
+    this.schema.Query['getFirst' + field] = {
+      name: 'getFirst' + field,
+      type: field,
+      params
+    }
   }
 
   /**
-   * Generates a convenient mutation putItem
+   * Create a convenient mutation putItem
    * to store a single record into the database
    * 
    * @param {String} tablename 
    */
   mapDbTableToGraphqlMutation(tablename) {
-    const typeName = utils.toCamelCase(tablename)
-    let string = 'putItem' + typeName;
+    const field = utils.toCamelCase(tablename)
+    if (!this.schema.Mutation) this.schema['Mutation'] = {};
     let columns = this.dbDriver.getTableColumnsFromSchema(tablename);
-    let vars = { _debug: 'Boolean' };
+    let params = { _debug: 'Boolean' };
     columns.forEach(col => {
       try {
-        vars[col] = this.dbDriver.mapDbColumnToGraphqlType(col, this.dbSchema[tablename][col]);
+        params[col] = this.dbDriver.mapDbColumnToGraphqlType(col, this.dbSchema[tablename][col]);
       } catch (err) {}
     });
-    string += this.buildParamsFromObject(vars) + ": " + typeName;
-    return string;
-  }
-
-  /**
-   * Adds a Graphql expression
-   * 
-   * @param {String} gql 
-   */
-  addRaw(gql) {
-    this.types.push(gql);
+    this.schema.Mutation['putItem' + field] = {
+      name: 'putItem' + field,
+      type: field,
+      params
+    };
   }
 
   /**
    * Adds a Graphql query
    * 
-   * @param {String} gql 
+   * @param {String} field 
    */
-  addQuery(gql) {
-    this.queries.push("  " + gql);
+  add(type, field, returns, params) {
+    if (!this.schema[type]) this.schema[type] = {};
+    this.schema[type][field] = {
+      name: field,
+      type: returns,
+      params
+    };
   }
 
   /**
-   * Adds a Graphql mutation
-   * 
-   * @param {String} gql 
-   */
-  addMutation(gql) {
-    this.mutations.push("  " + gql);
-  }
-
-  /**
-   * Generate a complete Graphql schema as a string.
+   * Generate a complete SDL schema as a string.
    * Can be used as standalone.
    */
-  getSchema(refresh = false, withDatabase = true) {
+  buildSchema(refresh = false, withDatabase = true) {
     withDatabase = withDatabase && this.dbDriver;
-    if (!this.cache || refresh) {
-      this.cache = '';
-      this.dbTypes.length = 0;
-      this.dbQueries.length = 0;
-      this.dbMutations.length = 0;
+    if (!this.sdl || refresh) {
+      this.sdl = '';
+      this.schema = {};
 
       if (withDatabase) {
         for (let tablename in this.dbSchema) {
-          this.dbTypes.push(this.mapDbTableToGraphqlType(tablename));
-          this.dbTypes.push(this.mapDbTableToGraphqlPage(tablename));
-          this.dbQueries.push("  "+this.mapDbTableToGraphqlQuery(tablename));
-          this.dbQueries.push("  "+this.mapDbTableToGraphqlFirstOf(tablename));
-          this.dbMutations.push("  "+this.mapDbTableToGraphqlMutation(tablename));
+          this.mapDbTableToGraphqlType(tablename);
+          this.mapDbTableToGraphqlQuery(tablename);
+          this.mapDbTableToGraphqlFirstOf(tablename);
+          this.mapDbTableToGraphqlMutation(tablename);
         }
       }
-
-      // Add to cache
-      if (this.types.length) this.cache += this.types.join("\n\n") + "\n\n";
-      if (this.dbTypes.length) this.cache += this.dbTypes.join("\n\n") + "\n\n";
-      
-      if (this.queries.length || this.dbQueries.length) {
-        this.cache += "type Query {\n"
-          + this.queries.join("\n")
-          + (withDatabase ? "\n" + this.dbQueries.join("\n") : '')
-          + "\n}\n\n";
-      }
-      if (this.mutations.length || this.dbMutations.length) {
-        this.cache += "type Mutation {\n"
-          + this.mutations.join("\n\n")
-          + (withDatabase ? "\n" + this.dbMutations.join("\n") : '')
-          + "\n}";
-      }
-      
     }
-    return this.cache;
+    return this.schema;
+  }
+
+  /**
+   * Generate a complete SDL schema as a string.
+   * Can be used as standalone.
+   */
+  getSDL(refresh = false) {
+    if (!this.sdl || refresh) {
+      this.sdl = '';
+      let items = [];
+
+      for (let field in this.schema) {
+        let subfields = [];
+        Object.keys(this.schema[field]).map(key => {
+          console.log('build', field, key);
+          if (key === 'length') return;
+          let f = this.schema[field][key];
+          let type = Array.isArray(f.type) ? '[' + f.type[0] + ']' : f.type;
+          subfields.push("  " + f.name + this.buildParamsFromObject(f.params || {}) + ": " + type);
+        });
+        items.push("type " + field + " {\n" + subfields.join("\n") + "\n}");
+      }
+      this.sdl = items.join("\n\n") + "\n";
+    }
+    return this.sdl;
   }
 }
 

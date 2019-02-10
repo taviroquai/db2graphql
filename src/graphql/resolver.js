@@ -1,11 +1,6 @@
 const utils = require('../utils/utils');
 
 /**
- * In memory cache
- */
-const cache = {};
-
-/**
  * Graphql resolver
  * 
  * By using a database schema and driver,
@@ -85,7 +80,7 @@ class Resolver {
    */
   async getFirstOf(tablename, args, context) {
     context._rootArgs = args;
-    args = this.parseArgs('getFirstOf', args);
+    args = this.parseArgs('getFirst', args);
     return await this.dbDriver.firstOf(tablename, args)
   }
 
@@ -185,7 +180,7 @@ class Resolver {
   parseArgs(queryName, args) {
     switch(queryName) {
       case 'getPage': return this.parseArgsCommon(args);
-      case 'getFirstOf': return this.parseArgsCommon(args);
+      case 'getFirst': return this.parseArgsCommon(args);
       default: ;
     }
     return args;
@@ -219,10 +214,7 @@ class Resolver {
    * @param {Function} cb 
    */
   add(namespace, name, cb) {
-    const available = Object.keys(this.resolvers);
-    if (available.indexOf(namespace) === -1) {
-      throw new Error('Namespace must be one of: ' + available.join(','))
-    }
+    if (!this.resolvers[namespace]) this.resolvers[namespace] = {};
     this.resolvers[namespace][name] = async (root, args, context) => {
       const db = this.dbDriver ? this.dbDriver.db : null;
       context.ioc = { resolver: this, db };
@@ -295,8 +287,8 @@ class Resolver {
         let queryName, typeName = utils.toCamelCase(tablename);
         queryName = 'getPage' + typeName;
         this.resolvers.Query[queryName] = this.contextOverload('getPage', tablename, this.getPage.bind(this));
-        queryName = 'getFirstOf' + typeName;
-        this.resolvers.Query[queryName] = this.contextOverload('getFirstOf', tablename, this.getFirstOf.bind(this));
+        queryName = 'getFirst' + typeName;
+        this.resolvers.Query[queryName] = this.contextOverload('getFirst', tablename, this.getFirstOf.bind(this));
         queryName = 'putItem' + typeName;
         this.resolvers.Mutation[queryName] = this.contextOverload('putItem', tablename, this.putItem.bind(this));
 

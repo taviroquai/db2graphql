@@ -42,65 +42,21 @@ class DB2Graphql {
   }
 
   /**
-   * Adds a Graphql mutation to the schema
-   * 
-   * 
-   * @access public
-   * @param {String} name         The name of the resolver ie. putUser
-   * @param {String} returns      The Graphql returning type ie. User
-   * @param {Function} resolver   The resolver callback
-   * @param {Object} [params={}]  The mutation arguments
-   * 
-   * @returns {DB2Graphql}        The self instance for fluent interface
-   */
-  addMutation(name, returns, resolver, params = {}) {
-    const gql = this.compiler.buildQuery(name, returns, params);
-    this.compiler.addMutation(gql);
-    this.resolver.add('Mutation', name, resolver);
-    return this;
-  }
-
-  /**
    * Adds a Graphql query to the schema
    * 
    * @access public
-   * @param {String} name         The name of the resolver ie. getUser
+   * @param {String} type         The root type name ie. Query
+   * @param {String} field        The field name of the resolver ie. getUser
    * @param {String} returns      The Graphql returning type ie. User
    * @param {Function} resolver   The resolver callback
    * @param {Object} [params={}]  The query arguments
    * 
    * @returns {DB2Graphql}        The self instance for fluent interface 
    */
-  addQuery(name, returns, resolver, params = {}) {
-    const gql = this.compiler.buildQuery(name, returns, params);
-    this.compiler.addQuery(gql);
-    this.resolver.add('Query', name, resolver);
+  add(type, field, returns, resolver, params = {}) {
+    this.compiler.add(type, field, returns, params);
+    this.resolver.add(type, field, resolver);
     return this;
-  }
-
-  /**
-   * Adds a Graphql raw expression
-   * 
-   * @access public
-   * @param {String} gql    The raw expression
-   * 
-   * @returns {DB2Graphql}  The self instance for fluent interface
-   */
-  addRaw(gql) {
-    this.compiler.addRaw(gql);
-    return this;
-  }
-
-  /**
-   * Adds a Graphql type definition
-   * 
-   * @access public
-   * @param {String} gql    The type definition
-   * 
-   * @returns {DB2Graphql}  The self instance for fluent interface
-   */
-  addType(gql) {
-    return this.addRaw(gql);
   }
 
   /**
@@ -125,6 +81,7 @@ class DB2Graphql {
     this.compiler.dbSchema = this.dbSchema;
     this.compiler.dbDriver = this.dbDriver;
     this.resolver.dbDriver = this.dbDriver;
+    this.compiler.buildSchema(true, true);
   }
 
   /**
@@ -165,7 +122,7 @@ class DB2Graphql {
    */
   getSchema(refresh = false) {
     if (!this.gqlSchema || refresh) {
-      this.gqlSchema = this.compiler.getSchema(refresh, !!this.connection);
+      this.gqlSchema = this.compiler.getSDL(refresh, !!this.connection);
     }
     return this.gqlSchema;
   }
@@ -215,7 +172,7 @@ class DB2Graphql {
     resolver = async () => {
       return JSON.stringify(this.dbSchema);
     };
-    this.addQuery("getSchema", "String", resolver);
+    this.add("Query", "getSchema", "String", resolver);
 
     // Add addSchemaColumn
     resolver = async (root, args, context) => {
@@ -240,7 +197,7 @@ class DB2Graphql {
       type: 'String!',
       foreign: 'String',
     };
-    this.addQuery('addSchemaColumn', 'Boolean', resolver, queryAlterColumnParams);
+    this.add('Query', 'addSchemaColumn', 'Boolean', resolver, queryAlterColumnParams);
 
     // Add dropSchemaColumn
     resolver = async (root, args, context) => {
@@ -258,7 +215,7 @@ class DB2Graphql {
       tablename: 'String!',
       columnname: 'String!'
     };
-    this.addQuery('dropSchemaColumn', 'Boolean', resolver, queryDropColumnParams);
+    this.add('Query', 'dropSchemaColumn', 'Boolean', resolver, queryDropColumnParams);
 
     // Add addSchemaTable
     resolver = async (root, args, context) => {
@@ -281,7 +238,7 @@ class DB2Graphql {
       type: 'String!',
       increments: 'Boolean'
     };
-    this.addQuery('addSchemaTable', 'Boolean', resolver, queryAddTableParams);
+    this.add('Query', 'addSchemaTable', 'Boolean', resolver, queryAddTableParams);
 
     // Add dropSchemaTable
     resolver = async (root, args, context) => {
@@ -293,7 +250,7 @@ class DB2Graphql {
         return false;
       }
     };
-    this.addQuery('dropSchemaTable', 'Boolean', resolver, { tablename: 'String!' });
+    this.add('Query', 'dropSchemaTable', 'Boolean', resolver, { tablename: 'String!' });
 
     // Fluent interface
     return this;
