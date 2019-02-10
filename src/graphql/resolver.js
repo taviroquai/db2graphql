@@ -24,34 +24,13 @@ class Resolver {
     this.dbDriver = dbDriver;
 
     // Holds resolvers object
-    this.resolvers = {
-      Query: {},
-      Mutation: {}
-    }
+    this.resolvers = {}
 
-    // Override hooks
-    this.overrides = {
-      getPage: null,
-      getFirstOf: null,
-      putItem: null
-    };
-  }
-
-  /**
-   * Allows the user to add an override
-   * on the available override API
-   * 
-   * @param {String} ns1 
-   * @param {Function} cb 
-   */
-  on(ns1, cb) {
-    if (Object.keys(this.overrides).indexOf(ns1) === -1) {
-      throw new Error('Override not found: ' + ns1);
+    // Default authorization hook
+    this.isAuthorizedHook = {
+      validator: async () => true,
+      rejected: async () => null
     }
-    if (typeof cb !== 'function') {
-      throw new Error('Override must be a function. Found ' + typeof cb);
-    }
-    this.overrides[ns1] = cb;
   }
 
   /**
@@ -62,8 +41,7 @@ class Resolver {
    * @param {String} tablename 
    * @param {Object} args 
    */
-  async getPage(tablename, args, context) {
-    context._rootArgs = args;
+  async getPage(tablename, parent, args, context) {
     args = this.parseArgsCommon(args, tablename);
     const total = await this.dbDriver.pageTotal(tablename, args);
     const items = await this.dbDriver.page(tablename, args);
@@ -78,8 +56,7 @@ class Resolver {
    * @param {String} tablename 
    * @param {Object} args 
    */
-  async getFirstOf(tablename, args, context) {
-    context._rootArgs = args;
+  async getFirstOf(tablename, parent, args, context) {
     args = this.parseArgsCommon(args, tablename);
     return await this.dbDriver.firstOf(tablename, args)
   }
@@ -92,7 +69,7 @@ class Resolver {
    * @param {String} tablename 
    * @param {Object} data
    */
-  async putItem(tablename, data) {
+  async putItem(tablename, parent, data, context) {
     const pk = this.dbDriver.getPrimaryKeyFromSchema(tablename);
 
     // Filter data
@@ -163,26 +140,6 @@ class Resolver {
   }
 
   /**
-   * Implements IoC
-   * Allows to give control to the user override
-   * while overloading the Graphql context
-   * with the resolver, tablename and Knex instance
-   * 
-   * @param {String} queryName 
-   * @param {String} tablename 
-   * @param {Function} cb 
-   */
-  contextOverload(queryName, tablename, cb) {
-    return async (root, args, context) => {
-      if (this.overrides[queryName]) {
-        context.ioc = { resolver: this, tablename, db: this.dbDriver.db };
-        return await this.overrides[queryName](root, args, context);
-      }
-      return await cb(tablename, args, context);
-    }
-  }
-
-  /**
    * Adds a Graphql resolver
    * 
    * @param {String} namespace 
@@ -191,7 +148,9 @@ class Resolver {
    */
   add(namespace, name, cb) {
     if (!this.resolvers[namespace]) this.resolvers[namespace] = {};
-    this.resolvers[namespace][name] = async (root, args, context) => {
+    this.resolvers[namespace][name] = async (root = null, args = {}, context = {}) => {
+      const isAuthorized = await this.isAuthorizedHook.validator(namespace, name, root, args, context);
+      if (!isAuthorized) return await this.isAuthorizedHook.rejected(namespace, name, root, args, context);
       const db = this.dbDriver ? this.dbDriver.db : null;
       context.ioc = { resolver: this, db };
       return await cb(root, args, context);
@@ -246,6 +205,24 @@ class Resolver {
   }
 
   /**
+   * Add default API resolvers
+   * 
+   * @param {String} tablename 
+   */
+  addDefaultFieldsResolvers(tablename) {
+    let typeName = utils.toCamelCase(tablename);
+    this.add('Query', 'getPage' + typeName, async (parent, args, context) => {
+      this.getPage(tablename, parent, args, context);
+    });
+    this.add('Query', 'getFirst' + typeName, async (parent, args, context) => {
+      this.getFirstOf(tablename, parent, args, context);
+    });
+    this.add('Mutation', 'putItem' + typeName, async (parent, args, context) => {
+      this.putItem(tablename, parent, args, context);
+    });
+  }
+
+  /**
    * Builds the Graphql resolvers object
    * by population with the current API methods
    * 
@@ -259,13 +236,9 @@ class Resolver {
       let tables = this.dbDriver.getTablesFromSchema();
       for (let i = 0; i < tables.length; i++) {
         let tablename = tables[i];
-        let queryName, typeName = utils.toCamelCase(tablename);
-        queryName = 'getPage' + typeName;
-        this.resolvers.Query[queryName] = this.contextOverload('getPage', tablename, this.getPage.bind(this));
-        queryName = 'getFirst' + typeName;
-        this.resolvers.Query[queryName] = this.contextOverload('getFirst', tablename, this.getFirstOf.bind(this));
-        queryName = 'putItem' + typeName;
-        this.resolvers.Mutation[queryName] = this.contextOverload('putItem', tablename, this.putItem.bind(this));
+        
+        // Add default resolvers
+        this.addDefaultFieldsResolvers(tablename);
 
         // Add foreign fields resolvers
         this.createForeignFieldsResolvers(tablename);

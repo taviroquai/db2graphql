@@ -67,6 +67,16 @@ class DB2Graphql {
   }
 
   /**
+   * Set authorization callback
+   * 
+   * @param {Function} validator 
+   */
+  isAuthorized(validator, rejected) {
+    this.resolver.isAuthorizedHook.validator = validator
+    if (rejected) this.resolver.isAuthorizedHook.rejected = rejected;
+  }
+
+  /**
    * Connects to the database and builds the database schema
    * 
    * @access public
@@ -132,34 +142,6 @@ class DB2Graphql {
       this.gqlSchema = this.compiler.getSDL(refresh, !!this.connection);
     }
     return this.gqlSchema;
-  }
-
-  /**
-   * Overrides a built-in resolver.
-   * 
-   * <p>
-   * Injects into context the resolver instance
-   * and the knex database connection.
-   * </p>
-   * 
-   * <p>
-   * Usefull for implementing custom authorization
-   * or other middleware.
-   * </p>
-   * 
-   * Name is one of the built-in resolver name:
-   * <br>1. getPage
-   * <br>2. getFirst
-   * <br>3. putItem
-   * 
-   * @param {String} name The built-in resolver name 
-   * @param {Function} cb The override callback
-   * 
-   * @returns {DB2Graphql} The self instance for fluent interface
-   */
-  override(name, cb) {
-    this.resolver.on(name, cb);
-    return this;
   }
 
   /**

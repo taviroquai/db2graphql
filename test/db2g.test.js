@@ -92,36 +92,6 @@ type Mutation {
     done();
   });
 
-  test('it should override a built-in resolver', async (done) => {
-    
-    // Setup database
-    await db.schema.dropTableIfExists('bar');
-    await db.schema.dropTableIfExists('foo');
-    await db.schema.createTable('foo', (table) => {
-      table.integer('bar').primary();
-    });
-    await db.schema.createTable('bar', (table) => {
-      table.integer('foo').primary();
-      table.integer('bar');
-      table.foreign('bar').references('foo.bar')
-    });
-
-    const api = new db2g(db);
-    await api.connect();
-    const resolver1 = (root, args, context) => {
-      const { resolver, tablename } = context.ioc;
-      expect(typeof resolver).toEqual('object');
-      expect(tablename).toEqual('foo');
-      done();
-    };
-    api.override('getPage', resolver1);
-    const result = api.getResolvers();
-    expect(typeof result).toEqual('object');
-    expect(typeof result.Query).toEqual('object');
-    expect(typeof result.Query.getPageFoo).toEqual('function');
-    await result.Query.getPageFoo(null, {}, {});
-  });
-
   test('it should return graphql schema without connect to database', async (done) => {
     const api = new db2g();
     let result = api.getSchema();
@@ -129,12 +99,12 @@ type Mutation {
     done();
   });
 
-  test('it should return the resolvers without connect to database', async (done) => {
+  test('it should return the no resolvers without connect to database', async (done) => {
     const api = new db2g();
     const result = api.getResolvers();
     expect(typeof result).toEqual('object');
-    expect(typeof result.Query).toEqual('object');
-    expect(typeof result.Mutation).toEqual('object');
+    expect(typeof result.Query).toEqual('undefined');
+    expect(typeof result.Mutation).toEqual('undefined');
     done();
   });
 
@@ -293,5 +263,49 @@ type Mutation {
     const result = api.getSchema();
     expect(result).toEqual("type Mutation {\n  putFoo(bar: Boolean): Foo\n}");
     done();
+  });
+
+  test('it should set and pass authorization hook', async (done) => {
+    const api = new db2g();
+    const validator = async (type, field, parent, args) => {
+      expect(type).toBe('Mutation');
+      expect(field).toBe('putFoo');
+      return true;
+    }
+    api.isAuthorized(validator)
+    api.add('Mutation', 'putFoo', 'Foo', (root, args, context) => {
+      done();
+    });
+    const resolvers = api.getResolvers();
+    await resolvers.Mutation.putFoo({}, {}, {});
+  });
+
+  test('it should set and get denied in authorization hook', async (done) => {
+    const api = new db2g();
+    const validator = async () => false;
+    api.isAuthorized(validator);
+    api.add('Mutation', 'putFoo', 'Foo', () => {});
+    const resolvers = api.getResolvers();
+    const result = await resolvers.Mutation.putFoo();
+    expect(result).toBeNull();
+    done();
+  });
+
+  test('it should set and get rejected in authorization hook', async (done) => {
+    const api = new db2g();
+    const validator = async (type, field, parent, args) => {
+      expect(type).toBe('Mutation');
+      expect(field).toBe('putFoo');
+      return false;
+    }
+    const rejected = async (type, field, parent, args) => {
+      expect(type).toBe('Mutation');
+      expect(field).toBe('putFoo');
+      done();
+    }
+    api.isAuthorized(validator, rejected)
+    api.add('Mutation', 'putFoo', 'Foo', () => {});
+    const resolvers = api.getResolvers();
+    await resolvers.Mutation.putFoo({}, {}, {});
   });
 });

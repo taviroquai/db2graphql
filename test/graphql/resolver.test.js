@@ -43,27 +43,6 @@ test('it should create a new Graphql resolver', () => {
   expect(resolver instanceof Resolver).toBe(true);
 });
 
-test('it should allow to create a resolver override', () => {
-  const resolver = new Resolver();
-  const override = () => {};
-  resolver.on('getPage', override)
-  expect(resolver.overrides['getPage']).toBe(override);
-});
-
-test('it should throw error on invalid override name', () => {
-  const resolver = new Resolver();
-  expect(() => {
-    resolver.on('foo', () => {});
-  }).toThrow(new Error('Override not found: foo'));
-});
-
-test('it should throw error on invalid override type', () => {
-  const resolver = new Resolver();
-  expect(() => {
-    resolver.on('getPage', 'bar');
-  }).toThrow(new Error('Override must be a function. Found string'));
-});
-
 test('it should return a page of items', async (done) => {
 
   // Mock dbDriver
@@ -77,7 +56,7 @@ test('it should return a page of items', async (done) => {
   }
   const dbDriver = new MockDriver();
   const resolver = new Resolver(dbDriver);
-  const result = await resolver.getPage('foo', {}, {});
+  const result = await resolver.getPage('foo', null, {}, {});
   const expected = {"items": [{"id": 1}], "tablename": "foo", "total": 1};
   expect(result).toEqual(expected);
   done();
@@ -93,7 +72,7 @@ test('it should return one item', async (done) => {
   }
   const dbDriver = new MockDriver();
   const resolver = new Resolver(dbDriver);
-  const result = await resolver.getFirstOf('foo', {}, {});
+  const result = await resolver.getFirstOf('foo', null, {}, {});
   const expected = {id:1};
   expect(result).toEqual(expected);
   done();
@@ -113,10 +92,10 @@ test('it should store one item and return it', async (done) => {
   }
   const dbDriver = new MockDriver();
   const resolver = new Resolver(dbDriver);
-  let result = await resolver.putItem('foo', {});
+  let result = await resolver.putItem('foo', null, {});
   let expected = {id:1};
   expect(result).toEqual(expected);
-  result = await resolver.putItem('foo', {id:1});
+  result = await resolver.putItem('foo', null, {id:1});
   expected = {id:1};
   expect(result).toEqual(expected);
   done();
@@ -177,62 +156,6 @@ test('it should parse args for common api', () => {
     let result = resolver.parseArgsCommon(t.args, 'foo');
     expect(result).toEqual(t.toEqual);
   });
-});
-
-test('it should create a resolver overloaded with context ioc', async (done) => {
-  const MockDriver = function() {
-    this.db = () => {}
-  }
-  const dbDriver = new MockDriver();
-  const resolver = new Resolver(dbDriver);
-  const callback = async (root, args, context) => {
-    expect(typeof context.ioc).toBe('object');
-    expect(context.ioc.resolver).toBe(resolver);
-    expect(context.ioc.tablename).toBe('foo');
-    expect(context.ioc.db).toBe(resolver.dbDriver.db);
-  };
-  resolver.on('getPage', callback);
-  let overloaded = resolver.contextOverload('getPage', 'foo', callback);
-  await overloaded(null, {}, {});
-  done();
-});
-
-test('it should create a default resolver', async (done) => {
-  const resolver = new Resolver();
-  const callback = async (tablename, args) => {
-    expect(tablename).toBe('foo');
-    expect(args).toEqual({});
-    done();
-  }
-  let overloaded = resolver.contextOverload('getPage', 'foo', callback);
-  await overloaded(null, {}, null);
-  done();
-});
-
-test('it should create a resolver overloaded with context ioc', async (done) => {
-  const MockDriver = function() {
-    this.dbSchema = { foo: { __reverse: [], foo: {} }}
-    this.getTableColumnsFromSchema = () => {
-      return ['foo'];
-    }
-    this.getTablesFromSchema = () => {
-      return ['foo'];
-    }
-  }
-  const dbDriver = new MockDriver();
-  const resolver = new Resolver(dbDriver);
-  const callback = async (root, args, context) => {};
-  resolver.on('getPage', callback);
-  let result = resolver.getResolvers();
-
-  // Assert
-  expect(typeof result).toEqual('object');
-  expect(typeof result.Mutation).toEqual('object');
-  expect(typeof result.Mutation.putItemFoo).toEqual('function');
-  expect(typeof result.Query).toEqual('object');
-  expect(typeof result.Query.getFirstFoo).toEqual('function');
-  expect(typeof result.Query.getPageFoo).toEqual('function');
-  done();
 });
 
 test('it should create a resolver for a foreign relationship', async (done) => {
@@ -322,18 +245,44 @@ test('it should add user-made resorver without database', async (done) => {
 });
 
 test('it should return without built-in resolver', async (done) => {
+  const resolver = new Resolver();
+  let result = resolver.getResolvers(false);
+  expect(typeof result).toEqual('object');
+  done();
+});
+
+test('it should get denied on default authorization hook', async (done) => {
+  const resolver = new Resolver();
+  resolver.isAuthorizedHook.validator = async () => false;
+  const callback = async () => {}
+  resolver.add('Query', 'getPage', 'foo', callback);
+  const resolvers = resolver.getResolvers();
+  const result = await resolvers.Query.getPage();
+  expect(result).toBeNull();
+  done();
+});
+
+test('it should add default table resolvers', async (done) => {
   const MockDriver = function() {
+    this.dbSchema = dbSchema;
     this.getTablesFromSchema = () => {
       return ['foo'];
-    }
+    };
+    this.getTableColumnsFromSchema = () => ['bar'];
+    this.pageTotal = async () => 1;
+    this.page = async () => []
+    this.firstOf = async () => null;
+    this.putItem = async () => null;
   }
   const dbDriver = new MockDriver();
   const resolver = new Resolver(dbDriver);
-  let result = resolver.getResolvers(false);
-
-  // Assert
-  expect(typeof result).toEqual('object');
-  expect(typeof result.Query).toEqual('object');
-  expect(typeof result.Query.getFirstFoo).toEqual('undefined');
+  resolver.addDefaultFieldsResolvers('foo');
+  const resolvers = resolver.getResolvers();
+  expect(typeof resolvers.Query.getPageFoo).toBe('function');
+  expect(typeof resolvers.Query.getFirstFoo).toBe('function');
+  expect(typeof resolvers.Mutation.putItemFoo).toBe('function');
+  await resolvers.Query.getPageFoo();
+  await resolvers.Query.getFirstFoo();
+  await resolvers.Mutation.putItemFoo();
   done();
 });

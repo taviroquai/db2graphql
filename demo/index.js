@@ -9,6 +9,15 @@ const start = async (cb) => {
   await api.connect(); // Connects to database and extracts database schema
   api.withBuilder();
 
+  // Set authorization hook example
+  const validator = async (type, field, parent, args, context) => {
+    return true; // Should return true/ false
+  }
+  const denied = async (type, field, parent, args, context) => {
+    throw new Error('Access Denied'); // Denied callback
+  }
+  api.isAuthorized(validator, denied);
+
   // Add extra field
   api.add('Users', 'fullname', 'String', (parent, args, context) => {
     return String(args.foo + parent.username);

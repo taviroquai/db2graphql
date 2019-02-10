@@ -97,6 +97,15 @@ const start = async (cb) => {
   const api = new db2g(knex(require('./connection.json')));
   await api.connect(); // Connects to database and extracts database schema
 
+  // Set authorization hook example
+  const validator = async (type, field, parent, args, context) => {
+    return true; // Should return true/ false
+  }
+  const denied = async (type, field, parent, args, context) => {
+    throw new Error('Access Denied'); // Denied callback
+  }
+  api.isAuthorized(validator, denied);
+
   // Example of adding extra field
   api.add('Users', 'fullname', 'String', (parent, args, context) => {
     return String(args.foo + parent.username);
