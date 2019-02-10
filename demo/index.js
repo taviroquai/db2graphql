@@ -23,7 +23,7 @@ const start = async (cb) => {
     return String(args.foo + parent.username);
   }, { foo: 'String' });
 
-  // Change existing schema
+  // Change existing resolver
   api.add('Users', 'password', 'String', () => '');
 
   // Get generated schema and resolvers
