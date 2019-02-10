@@ -42,7 +42,8 @@ class Resolver {
    * @param {Object} args 
    */
   async getPage(tablename, parent, args, context) {
-    args = this.parseArgsCommon(args, tablename);
+    console.log('getPage args', args);
+    args = this.parseArgsCommon(tablename, args);
     const total = await this.dbDriver.pageTotal(tablename, args);
     const items = await this.dbDriver.page(tablename, args);
     return { total, tablename, items };
@@ -57,7 +58,7 @@ class Resolver {
    * @param {Object} args 
    */
   async getFirstOf(tablename, parent, args, context) {
-    args = this.parseArgsCommon(args, tablename);
+    args = this.parseArgsCommon(tablename, args);
     return await this.dbDriver.firstOf(tablename, args)
   }
 
@@ -130,9 +131,10 @@ class Resolver {
   /**
    * Parse args common
    * 
+   * @param {String} tablename
    * @param {Object} args 
    */
-  parseArgsCommon(args, tablename) {
+  parseArgsCommon(tablename, args) {
     let localArgs = Object.assign({}, args);
     if (args.filter) localArgs.filter = this.parseFilterExpression(args.filter, tablename);
     if (args.pagination) localArgs.pagination = this.parsePaginationExpression(args.pagination, tablename);
@@ -173,8 +175,7 @@ class Resolver {
         const fcolumnname = column.__foreign.columnname;
         if (!this.resolvers[queryName]) this.resolvers[queryName] = {};
         this.resolvers[queryName][field] = async (item, args, context) => {
-          let { _rootArgs } = context;
-          args = this.parseArgsCommon(_rootArgs, field);
+          args = this.parseArgsCommon(field, args);
           const ids = [item[column.name]];
           const related = await this.dbDriver.loadItemsIn(field, fcolumnname, ids, args);
           return related.length ? related[0] : null;
@@ -196,7 +197,7 @@ class Resolver {
       const fcolumnname = r.fcolumnname;
       if (!this.resolvers[queryName]) this.resolvers[queryName] = {};
       this.resolvers[queryName][field] = async (item, args, context) => {
-        args = this.parseArgsCommon(args, field);
+        args = this.parseArgsCommon(field, args);
         const related = await this.dbDriver.loadItemsIn(field, fcolumnname, [item[r.columnname]], args);
         const result = { total: related.length, items: related };
         return result;
@@ -212,13 +213,13 @@ class Resolver {
   addDefaultFieldsResolvers(tablename) {
     let typeName = utils.toCamelCase(tablename);
     this.add('Query', 'getPage' + typeName, async (parent, args, context) => {
-      this.getPage(tablename, parent, args, context);
+      return this.getPage(tablename, parent, args, context);
     });
     this.add('Query', 'getFirst' + typeName, async (parent, args, context) => {
-      this.getFirstOf(tablename, parent, args, context);
+      return this.getFirstOf(tablename, parent, args, context);
     });
     this.add('Mutation', 'putItem' + typeName, async (parent, args, context) => {
-      this.putItem(tablename, parent, args, context);
+      return this.putItem(tablename, parent, args, context);
     });
   }
 

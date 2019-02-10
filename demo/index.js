@@ -29,6 +29,7 @@ const start = async (cb) => {
   // Get generated schema and resolvers
   const schema = api.getSchema();
   const resolvers = api.getResolvers();
+  console.log(resolvers);
   /****************************************************** */
 
   // Create Apollo Server and start

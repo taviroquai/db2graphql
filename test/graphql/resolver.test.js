@@ -153,7 +153,7 @@ test('it should parse args for common api', () => {
     }
   ];
   tests.forEach(t => {
-    let result = resolver.parseArgsCommon(t.args, 'foo');
+    let result = resolver.parseArgsCommon('foo', t.args);
     expect(result).toEqual(t.toEqual);
   });
 });
@@ -265,6 +265,7 @@ test('it should get denied on default authorization hook', async (done) => {
 test('it should add default table resolvers', async (done) => {
   const MockDriver = function() {
     this.dbSchema = dbSchema;
+    this.getPrimaryKeyFromSchema = () => 'bar';
     this.getTablesFromSchema = () => {
       return ['foo'];
     };
@@ -272,7 +273,7 @@ test('it should add default table resolvers', async (done) => {
     this.pageTotal = async () => 1;
     this.page = async () => []
     this.firstOf = async () => null;
-    this.putItem = async () => null;
+    this.putItem = async () => [1];
   }
   const dbDriver = new MockDriver();
   const resolver = new Resolver(dbDriver);
