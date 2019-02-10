@@ -42,7 +42,6 @@ class Resolver {
    * @param {Object} args 
    */
   async getPage(tablename, parent, args, context) {
-    console.log('getPage args', args);
     args = this.parseArgsCommon(tablename, args);
     const total = await this.dbDriver.pageTotal(tablename, args);
     const items = await this.dbDriver.page(tablename, args);
