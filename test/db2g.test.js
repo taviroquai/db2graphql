@@ -27,7 +27,7 @@ describe('Db2graphql', () => {
         }
       }
     };
-    const api = new db2g(new MockKnex());
+    const api = new db2g('test2', new MockKnex());
     try {
       await api.connect();
     } catch (err) {
@@ -37,12 +37,12 @@ describe('Db2graphql', () => {
   });
 
   test('it should create a new db2g instance', () => {
-    const api = new db2g(db);
+    const api = new db2g('test', db);
     expect(api instanceof db2g).toBe(true);
   });
 
   test('it should initialize without errors', async (done) => {
-    const api = new db2g(db);
+    const api = new db2g('test', db);
     await api.connect();
     done();
   });
@@ -50,7 +50,7 @@ describe('Db2graphql', () => {
   test('it should return database schema', async (done) => {
     await db.schema.dropTableIfExists('bar');
     await db.schema.dropTableIfExists('foo');
-    const api = new db2g(db);
+    const api = new db2g('test', db);
     let result = await api.getDatabaseSchema();
     expect(result).toEqual({});
     result = await api.getDatabaseSchema();
@@ -65,7 +65,13 @@ describe('Db2graphql', () => {
       table.integer('bar').primary();
     });
 
-    const schema = `type Foo {
+    const schema = `type Query {
+  getAPIName: String
+  getPageFoo(filter: String, pagination: String, _debug: Boolean, _cache: Boolean): PageFoo
+  getFirstFoo(filter: String, pagination: String, _debug: Boolean, _cache: Boolean): Foo
+}
+
+type Foo {
   bar: Int
 }
 
@@ -74,15 +80,10 @@ type PageFoo {
   items: [Foo]
 }
 
-type Query {
-  getPageFoo(filter: String, pagination: String, _debug: Boolean, _cache: Boolean): PageFoo
-  getFirstFoo(filter: String, pagination: String, _debug: Boolean, _cache: Boolean): Foo
-}
-
 type Mutation {
   putItemFoo(_debug: Boolean, bar: Int): Foo
 }`
-    const api = new db2g(db);
+    const api = new db2g('test', db);
     await api.connect();
     let result = await api.getDatabaseSchema();
     result = api.getSchema();
@@ -132,7 +133,7 @@ type Mutation {
 
   test('it should run builder queries without errors', async (done) => {
 
-    const api = new db2g(db);
+    const api = new db2g('test', db);
     await api.connect();
     api.withBuilder();
     const resolvers = api.getResolvers();

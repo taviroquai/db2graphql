@@ -25,9 +25,10 @@ class DB2Graphql {
    * const db2g = new DB2Graphql(knex())
    * </pre>
    * 
+   * @param {String} name
    * @param {Object} [db=null]  Knex database instance
    */
-  constructor(db = null) {
+  constructor(name = '', db = null) {
     this.drivers = {
       pg: PostgreSQL
     }
@@ -39,6 +40,9 @@ class DB2Graphql {
     this.dbDriver = null;
     this.compiler = new Compiler();
     this.resolver = new Resolver();
+
+    // Add initial resolver
+    if (name) this.add("Query", "getAPIName", "String", () => name);
   }
 
   /**
