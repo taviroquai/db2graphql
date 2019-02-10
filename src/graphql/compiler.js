@@ -187,20 +187,13 @@ class Compiler {
    * Generate a complete SDL schema as a string.
    * Can be used as standalone.
    */
-  buildSchema(refresh = false, withDatabase = true) {
-    withDatabase = withDatabase && this.dbDriver;
-    if (!this.sdl || refresh) {
-      this.sdl = '';
-      this.schema = {};
-
-      if (withDatabase) {
-        for (let tablename in this.dbSchema) {
-          this.mapDbTableToGraphqlType(tablename);
-          this.mapDbTableToGraphqlQuery(tablename);
-          this.mapDbTableToGraphqlFirstOf(tablename);
-          this.mapDbTableToGraphqlMutation(tablename);
-        }
-      }
+  buildSchema() {
+    if (!this.dbSchema) return this.schema;
+    for (let tablename in this.dbSchema) {
+      this.mapDbTableToGraphqlType(tablename);
+      this.mapDbTableToGraphqlQuery(tablename);
+      this.mapDbTableToGraphqlFirstOf(tablename);
+      this.mapDbTableToGraphqlMutation(tablename);
     }
     return this.schema;
   }
@@ -217,8 +210,6 @@ class Compiler {
       for (let field in this.schema) {
         let subfields = [];
         Object.keys(this.schema[field]).map(key => {
-          console.log('build', field, key);
-          if (key === 'length') return;
           let f = this.schema[field][key];
           let type = Array.isArray(f.type) ? '[' + f.type[0] + ']' : f.type;
           subfields.push("  " + f.name + this.buildParamsFromObject(f.params || {}) + ": " + type);
@@ -227,7 +218,7 @@ class Compiler {
       }
       this.sdl = items.join("\n\n") + "\n";
     }
-    return this.sdl;
+    return this.sdl.trim();
   }
 }
 

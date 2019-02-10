@@ -218,7 +218,7 @@ test('map parse args for API', () => {
   const resolver = new Resolver();
   let result = resolver.parseArgs('getPage', {});
   expect(result).toEqual({});
-  result = resolver.parseArgs('getFirstOf', {});
+  result = resolver.parseArgs('getFirst', {});
   expect(result).toEqual({});
   result = resolver.parseArgs('foo', {});
   expect(result).toEqual({});
@@ -275,7 +275,7 @@ test('it should create a resolver overloaded with context ioc', async (done) => 
   expect(typeof result.Mutation).toEqual('object');
   expect(typeof result.Mutation.putItemFoo).toEqual('function');
   expect(typeof result.Query).toEqual('object');
-  expect(typeof result.Query.getFirstOfFoo).toEqual('function');
+  expect(typeof result.Query.getFirstFoo).toEqual('function');
   expect(typeof result.Query.getPageFoo).toEqual('function');
   done();
 });
@@ -289,7 +289,8 @@ test('it should create a resolver for a foreign relationship', async (done) => {
   let dbDriver = new MockDriver();
   const resolver = new Resolver(dbDriver);
   resolver.createForeignFieldsResolvers('bar');
-  let resolvers = resolver.resolvers; 
+  resolver.createForeignFieldsResolvers('bar');
+  let resolvers = resolver.resolvers;
 
   // Assert
   expect(typeof resolvers).toEqual('object');
@@ -314,6 +315,7 @@ test('it should create a resolver for a reverse relationship', async (done) => {
   }
   const dbDriver = new MockDriver();
   const resolver = new Resolver(dbDriver);
+  resolver.createReverseRelationsResolvers('foo');
   resolver.createReverseRelationsResolvers('foo');
   let result = resolver.resolvers; 
 
@@ -377,13 +379,6 @@ test('it should return without built-in resolver', async (done) => {
   // Assert
   expect(typeof result).toEqual('object');
   expect(typeof result.Query).toEqual('object');
-  expect(typeof result.Query.getFirstOfFoo).toEqual('undefined');
+  expect(typeof result.Query.getFirstFoo).toEqual('undefined');
   done();
-});
-
-test('it should throw error on invalid resolver namespace', () => {
-  const resolver = new Resolver();
-  expect(() => {
-    resolver.add('foo', 'bar', () => {});
-  }).toThrow(new Error('Namespace must be one of: Query,Mutation'));
 });

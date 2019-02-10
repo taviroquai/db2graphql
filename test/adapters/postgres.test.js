@@ -127,8 +127,13 @@ describe('Postgres Driver', () => {
     });
 
     // Test
-    const adapter = new PostgreSQL(db, schema);
+    let adapter = new PostgreSQL(db, schema);
     let result = await adapter.page('foo', { _debug: true });
+    expect(Array.isArray(result)).toBe(true);
+
+    // Test without debug
+    adapter = new PostgreSQL(db, schema);
+    result = await adapter.page('foo', {});
     expect(Array.isArray(result)).toBe(true);
 
     // Test cache

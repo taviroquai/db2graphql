@@ -69,20 +69,17 @@ describe('Db2graphql', () => {
   bar: Int
 }
 
-type PageFoo{
-  total: Int,
-  tablename: String,
+type PageFoo {
+  total: Int
   items: [Foo]
 }
 
 type Query {
-
   getPageFoo(filter: String, pagination: String, _debug: Boolean, _cache: Boolean): PageFoo
-  getFirstOfFoo(filter: String, pagination: String, _debug: Boolean, _cache: Boolean): Foo
+  getFirstFoo(filter: String, pagination: String, _debug: Boolean, _cache: Boolean): Foo
 }
 
 type Mutation {
-
   putItemFoo(_debug: Boolean, bar: Int): Foo
 }`
     const api = new db2g(db);
@@ -143,9 +140,9 @@ type Mutation {
 
   test('it should add a graphql type without connect to database', async (done) => {
     const api = new db2g();
-    api.addType('type Foo { bar: Boolean }');
+    api.add('Foo', 'bar', 'Boolean');
     const result = api.getSchema();
-    expect(result).toEqual("type Foo { bar: Boolean }\n\n");
+    expect(result).toEqual("type Foo {\n  bar: Boolean\n}");
     done();
   });
 
@@ -264,9 +261,9 @@ type Mutation {
     const resolver1 = () => {};
     const api = new db2g()
     api.withBuilder()
-      .addType("type Fooz {\n  name: String\n}")
-      .addQuery("getFooz", "Fooz", resolver1)
-      .addMutation("putFooz", "Fooz", resolver1)
+      .add("Fooz", "name", "String")
+      .add("Query", "getFooz", "Fooz", resolver1)
+      .add("Mutation", "putFooz", "Fooz", resolver1)
     const result = api.getResolvers();
     expect(typeof result).toEqual('object');
     expect(typeof result.Query).toEqual('object');
@@ -276,15 +273,15 @@ type Mutation {
 
   test('it should add a graphql query', async (done) => {
     const api = new db2g();
-    api.addQuery('getFoo', 'Foo', (root, args, context) => {});
+    api.add("Query", 'getFoo', 'Foo', (root, args, context) => {});
     const result = api.getSchema();
-    expect(result).toEqual("type Query {\n  getFoo: Foo\n}\n\n");
+    expect(result).toEqual("type Query {\n  getFoo: Foo\n}");
     done();
   });
 
   test('it should add a graphql mutation', async (done) => {
     const api = new db2g();
-    api.addMutation('putFoo', 'Foo', (root, args, context) => {});
+    api.add('Mutation', 'putFoo', 'Foo', (root, args, context) => {});
     const result = api.getSchema();
     expect(result).toEqual("type Mutation {\n  putFoo: Foo\n}");
     done();
@@ -292,7 +289,7 @@ type Mutation {
 
   test('it should add a graphql mutation with params', async (done) => {
     const api = new db2g();
-    api.addMutation('putFoo', 'Foo', (root, args, context) => {}, { bar: 'Boolean' });
+    api.add('Mutation', 'putFoo', 'Foo', (root, args, context) => {}, { bar: 'Boolean' });
     const result = api.getSchema();
     expect(result).toEqual("type Mutation {\n  putFoo(bar: Boolean): Foo\n}");
     done();
