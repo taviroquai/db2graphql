@@ -4,6 +4,8 @@ CREATE TABLE users
   id serial NOT NULL,
   username character varying(64),
   password character varying(255),
+  firstname character varying(64),
+  lastname character varying(64),
   CONSTRAINT userspk PRIMARY KEY (id)
 );
 
@@ -30,8 +32,8 @@ CREATE TABLE posts
       ON UPDATE NO ACTION ON DELETE NO ACTION
 );
 
-INSERT INTO users (username, password) VALUES ('john', '123');
-INSERT INTO users (username, password) VALUES ('lia', '123');
+INSERT INTO users (username, password, firstname, lastname) VALUES ('john', '123', 'john', 'travolta');
+INSERT INTO users (username, password, firstname, lastname) VALUES ('sandra', '123', 'sandra', 'bullock');
 
 INSERT INTO categories (title) VALUES ('Cinema');
 INSERT INTO categories (title) VALUES ('Media');

@@ -8,7 +8,7 @@
   },
   "scripts": {
     "demo-db": "sudo psql -h localhost -U postgres -f ./demo/database.sql db2graphql",
-    "start": "node demo",
+    "start": "nodemon demo",
     "docs:update": "jsdoc src --debug -d docs -R README.md",
     "test": "jest",
     "watch": "jest --maxWorkers=1 --forceExit --watch --coverage --detectOpenHandles",
@@ -32,6 +32,7 @@
     "jest": "^23.6.0",
     "jsdoc": "^3.5.5",
     "knex": "^0.16.3",
+    "nodemon": "^1.18.10",
     "pg": "^7.8.0"
   },
   "jest": {

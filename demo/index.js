@@ -19,9 +19,9 @@ const start = async (cb) => {
   api.isAuthorized(validator, denied);
 
   // Add extra field
-  api.add('Users', 'fullname', 'String', (parent, args, context) => {
-    return String(args.foo + parent.username);
-  }, { foo: 'String' });
+  api.add('Users', 'fullname', 'String', (user, args, context) => {
+    return [user.firstname, user.lastname].join(' ');
+  });
 
   // Change existing resolver
   api.add('Users', 'password', 'String', () => '');
@@ -29,7 +29,6 @@ const start = async (cb) => {
   // Get generated schema and resolvers
   const schema = api.getSchema();
   const resolvers = api.getResolvers();
-  console.log(resolvers);
   /****************************************************** */
 
   // Create Apollo Server and start
