@@ -13,16 +13,17 @@ const start = async (cb) => {
   api.add('Users', 'fullname', 'String', (parent, args, context) => {
     return String(args.foo + parent.username);
   }, { foo: 'String' });
-  const schema = api.getSchema();
-  console.log(schema);
-  
-  // Change an existing field
-  const resolvers = api.getResolvers();
-  resolvers.Users.password = () => null;
 
+  // Change existing schema
+  api.add('Users', 'password', 'String', () => '');
+
+  // Get generated schema and resolvers
+  const schema = api.getSchema();
+  const resolvers = api.getResolvers();
   /****************************************************** */
 
   // Create Apollo Server and start
+  console.log(schema);
   const server = new ApolloServer({
     typeDefs: gql`${schema}`,
     resolvers

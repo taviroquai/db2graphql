@@ -20,21 +20,25 @@ Generates a Graphql schema and resolvers from an existing relational database
 
 ### Query example
 ```gql
-query{
-  getFirstOfUsers(
-    filter: "users:id=2"
-    pagination: "posts:limit=10;orderby=title desc"
+query {
+  getPageUsers(
+    filter: "id#1,2,3"
+    pagination: "limit=2;orderby=username desc"
+    _debug: true
   ) {
-    id
-    username
-    posts {
-      total
-      items {
-        id
-        title
-        categories {
-          id
+    items {
+      id
+      username
+      fullname(foo: "hello ")
+      password
+      posts(filter: "publish=true", _cache: false) {
+        total
+        items {
           title
+          publish
+          categories {
+            title
+          }
         }
       }
     }
@@ -92,6 +96,16 @@ const start = async (cb) => {
   /**************************************/
   const api = new db2g(knex(require('./connection.json')));
   await api.connect(); // Connects to database and extracts database schema
+
+  // Example of adding extra field
+  api.add('Users', 'fullname', 'String', (parent, args, context) => {
+    return String(args.foo + parent.username);
+  }, { foo: 'String' });
+
+  // Example of overiding existing schema
+  api.add('Users', 'password', 'String', () => '');
+
+  // Get generated schema and resolvers
   const schema = api.getSchema();
   const resolvers = api.getResolvers();
   /**************************************/
@@ -128,7 +142,7 @@ const db2g = require('db2graphql');
 const api = new db2g();
 
 // Add a query and resolver
-api.addQuery('getFoo', 'Boolean', async (root, args, context) => {
+api.add('getFoo', 'Boolean', async (root, args, context) => {
   return true;
 }, { param: 'String!' });
 
@@ -157,5 +171,3 @@ Anyone is free to collab :)
 
 ## License
 MIT, what else?
-
-

@@ -64,7 +64,7 @@ class Resolver {
    */
   async getPage(tablename, args, context) {
     context._rootArgs = args;
-    args = this.parseArgs('getPage', args);
+    args = this.parseArgsCommon(args, tablename);
     const total = await this.dbDriver.pageTotal(tablename, args);
     const items = await this.dbDriver.page(tablename, args);
     return { total, tablename, items };
@@ -80,7 +80,7 @@ class Resolver {
    */
   async getFirstOf(tablename, args, context) {
     context._rootArgs = args;
-    args = this.parseArgs('getFirst', args);
+    args = this.parseArgsCommon(args, tablename);
     return await this.dbDriver.firstOf(tablename, args)
   }
 
@@ -117,44 +117,35 @@ class Resolver {
    * 
    * @param {String} filterExpr 
    */
-  parseFilterExpression(filterExpr) {
+  parseFilterExpression(filterExpr, tablename) {
     const filter = {};
-    const expr = filterExpr.split('|');
-    expr.map(e1 => {
-      const [ tablename, where ] = e1.split(':');
-      if (!tablename) throw new Error('Tablename not found in: ' + e1);
-      if (!where) throw new Error('Where expression not found in: ' + e1);
-      filter[tablename.trim()] = [];
-      where.split(';').map(f1 => {
-        let op = /\<\=\>|>=|<=|=|>|<|~|\#/.exec(f1);
-        if (!op) throw new Error('Filter operation not suported in: ' + f1);
-        op = op[0].trim();
-        let condition = f1.split(op);
-        condition.unshift(op);
-        condition = condition.map(c => c.trim())
-        filter[tablename].push(condition);
-      });
+    const where = filterExpr;
+    filter[tablename.trim()] = [];
+    where.split(';').map(f1 => {
+      let op = /\<\=\>|>=|<=|=|>|<|~|\#/.exec(f1);
+      if (!op) throw new Error('Filter operation not suported in: ' + f1);
+      op = op[0].trim();
+      let condition = f1.split(op);
+      condition.unshift(op);
+      condition = condition.map(c => c.trim())
+      filter[tablename].push(condition);
     });
     return filter;
   }
 
   /**
+   * Parse pagination expression
    * 
    * @param {String} expression 
    */
-  parsePaginationExpression(expression) {
+  parsePaginationExpression(expression, tablename) {
     const pagination = {};
-    const expr = expression.split('|');
-    expr.map(e1 => {
-      const [ tablename, pagExpr ] = e1.split(':');
-      if (!tablename) throw new Error('Tablename not found in: ' + e1);
-      if (!pagExpr) throw new Error('Pagination not found in: ' + e1);
-      pagination[tablename.trim()] = [];
-      pagExpr.split(';').map(f1 => {
-        let params = f1.split('=');
-        params = params.map(p => p.trim())
-        pagination[tablename].push(params);
-      });
+    const pagExpr = String(expression);
+    pagination[tablename.trim()] = [];
+    pagExpr.split(';').map(f1 => {
+      let params = f1.split('=');
+      params = params.map(p => p.trim())
+      pagination[tablename].push(params);
     });
     return pagination;
   }
@@ -164,26 +155,11 @@ class Resolver {
    * 
    * @param {Object} args 
    */
-  parseArgsCommon(args) {
+  parseArgsCommon(args, tablename) {
     let localArgs = Object.assign({}, args);
-    if (args.filter) localArgs.filter = this.parseFilterExpression(args.filter);
-    if (args.pagination) localArgs.pagination = this.parsePaginationExpression(args.pagination);
+    if (args.filter) localArgs.filter = this.parseFilterExpression(args.filter, tablename);
+    if (args.pagination) localArgs.pagination = this.parsePaginationExpression(args.pagination, tablename);
     return localArgs;
-  }
-
-  /**
-   * Parse arguments
-   * 
-   * @param {String} queryName 
-   * @param {Object} args 
-   */
-  parseArgs(queryName, args) {
-    switch(queryName) {
-      case 'getPage': return this.parseArgsCommon(args);
-      case 'getFirst': return this.parseArgsCommon(args);
-      default: ;
-    }
-    return args;
   }
 
   /**
@@ -239,7 +215,7 @@ class Resolver {
         if (!this.resolvers[queryName]) this.resolvers[queryName] = {};
         this.resolvers[queryName][field] = async (item, args, context) => {
           let { _rootArgs } = context;
-          args = this.parseArgsCommon(_rootArgs);
+          args = this.parseArgsCommon(_rootArgs, field);
           const ids = [item[column.name]];
           const related = await this.dbDriver.loadItemsIn(field, fcolumnname, ids, args);
           return related.length ? related[0] : null;
@@ -261,8 +237,7 @@ class Resolver {
       const fcolumnname = r.fcolumnname;
       if (!this.resolvers[queryName]) this.resolvers[queryName] = {};
       this.resolvers[queryName][field] = async (item, args, context) => {
-        let { _rootArgs } = context;
-        args = this.parseArgsCommon(_rootArgs);
+        args = this.parseArgsCommon(args, field);
         const related = await this.dbDriver.loadItemsIn(field, fcolumnname, [item[r.columnname]], args);
         const result = { total: related.length, items: related };
         return result;

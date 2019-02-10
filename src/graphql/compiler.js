@@ -91,7 +91,12 @@ class Compiler {
       this.schema[field][child] = {
         name: child,
         type: 'Page' + utils.toCamelCase(child),
-        params: {}
+        params: {
+          filter: 'String',
+          pagination: 'String',
+          _debug: 'Boolean',
+          _cache: 'Boolean'
+        }
       }
     });
 

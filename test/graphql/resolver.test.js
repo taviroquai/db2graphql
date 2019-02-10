@@ -1,6 +1,5 @@
 const Resolver = require('../../src/graphql/resolver');
 
-
 const dbSchema = {
   "bar": {
     "__pk": "foo",
@@ -126,102 +125,58 @@ test('it should store one item and return it', async (done) => {
 test('it should parse filter expressions', () => {
   const resolver = new Resolver();
   const tests = [
-    { filter: 'foo:id=1', toEqual: { foo: [['=', 'id', '1']]} },
-    { filter: 'foo:bar<=>baz', toEqual: { foo: [['<=>', 'bar', 'baz']]} },
-    { filter: 'foo:id>=1', toEqual: { foo: [['>=', 'id', '1']]} },
-    { filter: 'foo:id<=1', toEqual: { foo: [['<=', 'id', '1']]} },
-    { filter: 'foo:id>1', toEqual: { foo: [['>', 'id', '1']]} },
-    { filter: 'foo:id<1', toEqual: { foo: [['<', 'id', '1']]} },
-    { filter: 'foo:title~bar', toEqual: { foo: [['~', 'title', 'bar']]} },
-    { filter: 'foo:bar#baz', toEqual: { foo: [['#', 'bar', 'baz']]} },
-    { filter: 'foo:bar=1;baz=2', toEqual: { foo: [['=', 'bar', '1'], ['=', 'baz', '2']]} },
-    { filter: 'foo:bar=1|baz:boo=2', toEqual: { foo: [['=', 'bar', '1']], baz: [['=', 'boo', '2']]} },
+    { filter: 'id=1', toEqual: { foo: [['=', 'id', '1']]} },
+    { filter: 'bar<=>baz', toEqual: { foo: [['<=>', 'bar', 'baz']]} },
+    { filter: 'id>=1', toEqual: { foo: [['>=', 'id', '1']]} },
+    { filter: 'id<=1', toEqual: { foo: [['<=', 'id', '1']]} },
+    { filter: 'id>1', toEqual: { foo: [['>', 'id', '1']]} },
+    { filter: 'id<1', toEqual: { foo: [['<', 'id', '1']]} },
+    { filter: 'title~bar', toEqual: { foo: [['~', 'title', 'bar']]} },
+    { filter: 'bar#baz', toEqual: { foo: [['#', 'bar', 'baz']]} },
+    { filter: 'bar=1;baz=2', toEqual: { foo: [['=', 'bar', '1'], ['=', 'baz', '2']]} }
   ];
   tests.forEach(t => {
-    let result = resolver.parseFilterExpression(t.filter);
+    let result = resolver.parseFilterExpression(t.filter, 'foo');
     expect(result).toEqual(t.toEqual);
   });
 });
 
-test('it should throw error on missing table name in filter expression', () => {
-  const resolver = new Resolver();
-  const filter = ':id=1';
-  expect(() => {
-    resolver.parseFilterExpression(filter);
-  }).toThrow(new Error('Tablename not found in: ' + filter));
-});
-
-test('it should throw error on missing where expression in filter', () => {
-  const resolver = new Resolver();
-  const filter = 'foo:';
-  expect(() => {
-    resolver.parseFilterExpression(filter);
-  }).toThrow(new Error('Where expression not found in: ' + filter));
-});
-
 test('it should throw error on invalid operation in filter', () => {
   const resolver = new Resolver();
-  const filter = 'foo:bar!baz';
+  const filter = 'bar!baz';
   expect(() => {
-    resolver.parseFilterExpression(filter);
+    resolver.parseFilterExpression(filter, 'foo');
   }).toThrow(new Error('Filter operation not suported in: bar!baz'));
 });
 
 test('it should parse pagination expressions', () => {
   const resolver = new Resolver();
   const tests = [
-    { pagination: 'foo:limit=1', toEqual: { foo: [['limit', '1']]} },
-    { pagination: 'foo:limit=1;offset=2', toEqual: { foo: [['limit', '1'], ['offset', '2']]} },
-    { pagination: 'foo:limit=1;offset=2;sortby=bar asc', toEqual: { foo: [['limit', '1'], ['offset', '2'], ['sortby', 'bar asc']]} },
-    { pagination: 'foo:limit=1|baz:limit=2', toEqual: { foo: [['limit', '1']], baz: [['limit', '2']]} },
+    { pagination: 'limit=1', toEqual: { foo: [['limit', '1']]} },
+    { pagination: 'limit=1;offset=2', toEqual: { foo: [['limit', '1'], ['offset', '2']]} },
+    { pagination: 'limit=1;offset=2;sortby=bar asc', toEqual: { foo: [['limit', '1'], ['offset', '2'], ['sortby', 'bar asc']]} },
   ];
   tests.forEach(t => {
-    let result = resolver.parsePaginationExpression(t.pagination);
+    let result = resolver.parsePaginationExpression(t.pagination, 'foo');
     expect(result).toEqual(t.toEqual);
   });
-});
-
-test('it should throw error on missing table name in pagination expression', () => {
-  const resolver = new Resolver();
-  const pagination = ':limit=1';
-  expect(() => {
-    resolver.parsePaginationExpression(pagination);
-  }).toThrow(new Error('Tablename not found in: ' + pagination));
-});
-
-test('it should throw error on missing pagination expression', () => {
-  const resolver = new Resolver();
-  const pagination = 'foo:';
-  expect(() => {
-    resolver.parsePaginationExpression(pagination);
-  }).toThrow(new Error('Pagination not found in: ' + pagination));
 });
 
 test('it should parse args for common api', () => {
   const resolver = new Resolver();
   const tests = [
     { args: {}, toEqual: {} },
-    { args: { filter: 'foo:id=1' }, toEqual: { filter: { foo: [['=', 'id', '1']]} }},
-    { args: { pagination: 'foo:limit=1' }, toEqual: { pagination: { foo: [['limit', '1']]} }},
+    { args: { filter: 'id=1' }, toEqual: { filter: { foo: [['=', 'id', '1']]} }},
+    { args: { pagination: 'limit=1' }, toEqual: { pagination: { foo: [['limit', '1']]} }},
     {
-      args: { filter: 'foo:id=1', pagination: 'foo:limit=1' },
+      args: { filter: 'id=1', pagination: 'limit=1' },
       toEqual: { filter: { foo: [['=', 'id', '1']] }, pagination: { foo: [['limit', '1']]} }
     }
   ];
   tests.forEach(t => {
-    let result = resolver.parseArgsCommon(t.args);
+    let result = resolver.parseArgsCommon(t.args, 'foo');
     expect(result).toEqual(t.toEqual);
   });
-});
-
-test('map parse args for API', () => {
-  const resolver = new Resolver();
-  let result = resolver.parseArgs('getPage', {});
-  expect(result).toEqual({});
-  result = resolver.parseArgs('getFirst', {});
-  expect(result).toEqual({});
-  result = resolver.parseArgs('foo', {});
-  expect(result).toEqual({});
 });
 
 test('it should create a resolver overloaded with context ioc', async (done) => {
