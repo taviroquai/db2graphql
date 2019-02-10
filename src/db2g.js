@@ -42,14 +42,21 @@ class DB2Graphql {
   }
 
   /**
-   * Adds a Graphql query to the schema
+   * Adds a Graphql query to the schema.
+   * If type does not exists, it gets created.
+   * 
+   * <p>Usage example:</p>
+   * 
+   * <pre>
+   * add('Users', 'fullname', 'String', (user) => user.firstname + user.lastname)
+   * </pre>
    * 
    * @access public
-   * @param {String} type         The root type name ie. Query
-   * @param {String} field        The field name of the resolver ie. getUser
-   * @param {String} returns      The Graphql returning type ie. User
-   * @param {Function} resolver   The resolver callback
-   * @param {Object} [params={}]  The query arguments
+   * @param {String} type           The root type name ie. Query
+   * @param {String} field          The field name of the resolver ie. getUser
+   * @param {String|Array} returns  The Graphql returning type ie. Boolean or 'User' or ['User']
+   * @param {Function} resolver     The resolver callback
+   * @param {Object} [params={}]    The query arguments
    * 
    * @returns {DB2Graphql}        The self instance for fluent interface 
    */
@@ -81,7 +88,7 @@ class DB2Graphql {
     this.compiler.dbSchema = this.dbSchema;
     this.compiler.dbDriver = this.dbDriver;
     this.resolver.dbDriver = this.dbDriver;
-    this.compiler.buildSchema(true, true);
+    this.compiler.buildSchema();
   }
 
   /**
@@ -142,7 +149,7 @@ class DB2Graphql {
    * 
    * Name is one of the built-in resolver name:
    * <br>1. getPage
-   * <br>2. getFirstOf
+   * <br>2. getFirst
    * <br>3. putItem
    * 
    * @param {String} name The built-in resolver name 

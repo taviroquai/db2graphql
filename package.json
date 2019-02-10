@@ -9,7 +9,7 @@
   "scripts": {
     "demo-db": "sudo psql -h localhost -U postgres -f ./demo/database.sql db2graphql",
     "start": "node demo",
-    "docs:update": "jsdoc src/db2g.js --debug --explain -d docs -R README.md",
+    "docs:update": "jsdoc src --debug -d docs -R README.md",
     "test": "jest",
     "watch": "jest --maxWorkers=1 --forceExit --watch --coverage --detectOpenHandles",
     "travis_test": "jest --detectOpenHandles --forceExit --maxWorkers=1 --coverage --coverageReporters=text-lcov | coveralls"
