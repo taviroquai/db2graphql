@@ -140,7 +140,7 @@ const db2g = require('db2graphql');
 const api = new db2g('demo');
 
 // Add a query and resolver
-api.add('getFoo', 'Boolean', async (root, args, context) => {
+api.add('Query', 'getFoo', 'Boolean', async (root, args, context) => {
   return true;
 }, { param: 'String!' });
 
