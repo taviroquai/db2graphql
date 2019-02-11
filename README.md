@@ -64,7 +64,7 @@ query {
 ```js
 const knex = require('knex');
 const db2g = require('db2graphql');
-const api = new db2g(knex(require('./connection.json')));
+const api = new db2g('demo', knex(require('./connection.json')));
 await api.connect();
 const schema = api.getSchema();
 ```
@@ -94,7 +94,7 @@ const { ApolloServer, gql } = require('apollo-server');
 const start = async (cb) => {
 
   /**************************************/
-  const api = new db2g(knex(require('./connection.json')));
+  const api = new db2g('demo', knex(require('./connection.json')));
   await api.connect(); // Connects to database and extracts database schema
 
   // Set authorization hook example
@@ -137,7 +137,7 @@ start();
 ### Example without database connection
 ```js
 const db2g = require('db2graphql');
-const api = new db2g();
+const api = new db2g('demo');
 
 // Add a query and resolver
 api.add('getFoo', 'Boolean', async (root, args, context) => {
