@@ -2,8 +2,12 @@
 
 Generates a Graphql schema and resolvers from an existing relational database
 
-[![Build Status](https://travis-ci.org/taviroquai/db2graphql.svg?branch=master)](https://travis-ci.org/taviroquai/db2graphql)
-[![Coverage Status](https://coveralls.io/repos/github/taviroquai/db2graphql/badge.svg?branch=master)](https://coveralls.io/github/taviroquai/db2graphql?branch=master)
+[![NPM Version Badge](https://img.shields.io/npm/v/db2graphql.svg)](https://www.npmjs.com/package/db2graphql)
+[![Build Status Badge](https://travis-ci.org/taviroquai/db2graphql.svg?branch=master)](https://travis-ci.org/taviroquai/db2graphql)
+[![Coverage Status Badge](https://coveralls.io/repos/github/taviroquai/db2graphql/badge.svg?branch=master)](https://coveralls.io/github/taviroquai/db2graphql?branch=master)
+![Dependencies Badge](https://img.shields.io/david/taviroquai/db2graphql.svg?style=flat)
+![Module Size Badge](https://img.shields.io/bundlephobia/min/db2graphql.svg?style=flat)
+![Last Commit Badge](https://img.shields.io/github/last-commit/taviroquai/db2graphql.svg?style=flat)
 
 :exclamation::exclamation::exclamation: **Warning: don't use this in production yet, but your feedback is very important!**
 
