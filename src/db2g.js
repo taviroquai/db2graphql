@@ -240,7 +240,7 @@ class DB2Graphql {
         await db.schema.dropTable(args.tablename);
         return true;
       } catch (err) {
-        return true;
+        return false;
       }
     };
     this.add('Query', 'dropSchemaTable', 'Boolean', resolver, { tablename: 'String!' });
