@@ -166,6 +166,8 @@ type Mutation {
     });
     result = await resolvers.Query.dropSchemaTable(null, { tablename: "foo" }, {});
     expect(result).toEqual(true);
+    result = await resolvers.Query.dropSchemaTable(null, { tablename: "foo" }, {});
+    expect(result).toEqual(false);
 
     await db.schema.dropTableIfExists('foo');
     await db.schema.createTable('foo', (table) => {
