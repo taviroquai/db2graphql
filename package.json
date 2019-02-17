@@ -10,7 +10,7 @@
     "demo-db": "sudo psql -h localhost -U postgres -f ./demo/database.sql db2graphql",
     "start": "nodemon demo",
     "docs:update": "jsdoc src --debug -d docs -R README.md",
-    "test": "jest",
+    "test": "jest  --maxWorkers=1 --forceExit --detectOpenHandles",
     "watch": "jest --maxWorkers=1 --forceExit --watch --coverage --detectOpenHandles",
     "travis_test": "jest --detectOpenHandles --forceExit --maxWorkers=1 --coverage --coverageReporters=text-lcov | coveralls"
   },
@@ -23,6 +23,7 @@
   "author": "Marco Afonso",
   "license": "MIT",
   "dependencies": {
+    "lru-cache": "^5.1.1",
     "string-hash-64": "^1.0.3"
   },
   "devDependencies": {

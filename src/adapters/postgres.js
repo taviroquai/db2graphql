@@ -1,4 +1,5 @@
 const hash = require('string-hash-64');
+const LruCache = require('lru-cache');
 
 /**
  * Available types
@@ -18,7 +19,7 @@ class PostgreSQL {
   constructor(db, dbSchema = {}) {
     this.db = db;
     this.dbSchema = dbSchema;
-    this.cache = {};
+    this.cache = new LruCache({ max: 500, maxAge: 1000 * 60 * 60 * 5 });
   }
 
   /**
@@ -68,10 +69,9 @@ class PostgreSQL {
 
     // Load from cache
     const key = this.getCacheKey(tablename, 'page', [], args);
-    if (!this.cache[tablename]) this.cache[tablename] = {};
-    if (args._cache !== false && this.cache[tablename][key]) {
+    if (args._cache !== false && this.cache.peek(key)) {
       if (args._debug) console.log('cache hit:', key);
-      return this.cache[tablename][key];
+      return this.cache.get(key);
     }
 
     // Load items
@@ -80,7 +80,7 @@ class PostgreSQL {
     (args) && this.addPaginationFromArgs(tablename, query, args);
     if (args._debug) console.log('db hit:', query.toSQL().sql, query.toSQL().bindings);
     const items = await query;
-    this.cache[tablename][key] = items;
+    this.cache.set(key, items);
     return items;
   }
 
@@ -254,10 +254,9 @@ class PostgreSQL {
     
     // Load from cache
     const key = this.getCacheKey(tablename, 'page', ids, localArgs);
-    if (!this.cache[tablename]) this.cache[tablename] = {};
-    if (args._cache !== false && this.cache[tablename][key]) {
+    if (args._cache !== false && this.cache.peek(key)) {
       if (args._debug) console.log('cache hit:', key);
-      return this.cache[tablename][key];
+      return this.cache.get(key);
     }
 
     // Load from database
@@ -265,7 +264,7 @@ class PostgreSQL {
     this.addWhereFromArgs(tablename, query, localArgs);
     if (args._debug) console.log('db hit:', key, query.toSQL().sql, query.toSQL().bindings);
     const results = await query;
-    this.cache[tablename][key] = results;
+    this.cache.set(key, results);
     return results;
   }
 
