@@ -251,9 +251,9 @@ test('it should return without built-in resolver', async (done) => {
   done();
 });
 
-test('it should get denied on default authorization hook', async (done) => {
+test('it should get denied on default before hook', async (done) => {
   const resolver = new Resolver();
-  resolver.isAuthorizedHook.validator = async () => false;
+  resolver.beforeHook.validator = async () => false;
   const callback = async () => {}
   resolver.add('Query', 'getPage', 'foo', callback);
   const resolvers = resolver.getResolvers();

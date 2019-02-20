@@ -71,13 +71,14 @@ class DB2Graphql {
   }
 
   /**
-   * Set authorization callback
+   * Set before hook
    * 
-   * @param {Function} validator 
+   * @param {Function} validator  The validator callback. Must return true/false
+   * @param {Function} rejected   The rejected callback. Must return resolver type/null
    */
-  isAuthorized(validator, rejected) {
-    this.resolver.isAuthorizedHook.validator = validator
-    if (rejected) this.resolver.isAuthorizedHook.rejected = rejected;
+  onBefore(validator, rejected) {
+    this.resolver.beforeHook.validator = validator
+    if (rejected) this.resolver.beforeHook.rejected = rejected;
   }
 
   /**

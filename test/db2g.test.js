@@ -266,14 +266,14 @@ type Mutation {
     done();
   });
 
-  test('it should set and pass authorization hook', async (done) => {
+  test('it should set and pass before hook', async (done) => {
     const api = new db2g();
     const validator = async (type, field, parent, args) => {
       expect(type).toBe('Mutation');
       expect(field).toBe('putFoo');
       return true;
     }
-    api.isAuthorized(validator)
+    api.onBefore(validator)
     api.add('Mutation', 'putFoo', 'Foo', (root, args, context) => {
       done();
     });
@@ -281,10 +281,10 @@ type Mutation {
     await resolvers.Mutation.putFoo({}, {}, {});
   });
 
-  test('it should set and get denied in authorization hook', async (done) => {
+  test('it should set and get denied on before hook', async (done) => {
     const api = new db2g();
     const validator = async () => false;
-    api.isAuthorized(validator);
+    api.onBefore(validator);
     api.add('Mutation', 'putFoo', 'Foo', () => {});
     const resolvers = api.getResolvers();
     const result = await resolvers.Mutation.putFoo();
@@ -292,7 +292,7 @@ type Mutation {
     done();
   });
 
-  test('it should set and get rejected in authorization hook', async (done) => {
+  test('it should set and get rejected on before hook', async (done) => {
     const api = new db2g();
     const validator = async (type, field, parent, args) => {
       expect(type).toBe('Mutation');
@@ -304,7 +304,7 @@ type Mutation {
       expect(field).toBe('putFoo');
       done();
     }
-    api.isAuthorized(validator, rejected)
+    api.onBefore(validator, rejected)
     api.add('Mutation', 'putFoo', 'Foo', () => {});
     const resolvers = api.getResolvers();
     await resolvers.Mutation.putFoo({}, {}, {});
