@@ -150,10 +150,10 @@ class Resolver {
   add(namespace, name, cb) {
     if (!this.resolvers[namespace]) this.resolvers[namespace] = {};
     this.resolvers[namespace][name] = async (root = null, args = {}, context = {}) => {
-      const passBefore = await this.beforeHook.validator(namespace, name, root, args, context);
-      if (!passBefore) return await this.beforeHook.rejected(namespace, name, root, args, context);
       const db = this.dbDriver ? this.dbDriver.db : null;
       context.ioc = { resolver: this, db };
+      const passBefore = await this.beforeHook.validator(namespace, name, root, args, context);
+      if (!passBefore) return await this.beforeHook.rejected(namespace, name, root, args, context);
       return await cb(root, args, context);
     }
   }
