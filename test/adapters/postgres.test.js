@@ -202,12 +202,14 @@ describe('Postgres Driver', () => {
     await db.schema.dropTableIfExists('foo');
     await db.schema.createTable('foo', (table) => {
       table.increments('id').primary();
+      table.boolean('bar');
     });
     
     const adapter = new PostgreSQL(db, schema);
-    let result = await adapter.putItem('foo', {});
-    expect(typeof result).toBe("object");
-    result = await adapter.putItem('foo', { id: 1 });
+    let result = await adapter.putItem('foo', { bar: true });
+    expect(Array.isArray(result)).toBe(true);
+    expect(result.length).toBe(1);
+    result = await adapter.putItem('foo', { id: result[0], bar: true });
     expect(typeof result).toBe("number");
     done();
   });

@@ -121,7 +121,8 @@ class PostgreSQL {
   async putItem(tablename, data) {
     const pk = this.getPrimaryKeyFromSchema(tablename);
     let result = null;
-    if (!data[pk]) {
+    let count = data[pk] ? await this.db(tablename).where(pk, data[pk]).count() : false;
+    if (!count || parseInt(count[0].count, 10) === 0) {
       let query = this.db(tablename);
       query.returning(pk)
       result = await query.insert(data);
