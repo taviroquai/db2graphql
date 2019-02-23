@@ -1,6 +1,6 @@
 {
   "name": "db2graphql",
-  "version": "0.3.10",
+  "version": "0.3.11",
   "description": "Generate Graphql schema based on existing relational database",
   "main": "index.js",
   "engines": {
