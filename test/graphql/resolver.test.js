@@ -159,12 +159,12 @@ test('it should parse args for common api', () => {
 });
 
 test('it should create a resolver for a foreign relationship', async (done) => {
-  const MockDriver = function() {
+  let MockDriver = function(related) {
     this.dbSchema = dbSchema;
     this.getTableColumnsFromSchema = () => ['bar', 'foo'];
-    this.loadItemsIn = () => [{}];
+    this.loadItemsIn = () => related;
   }
-  let dbDriver = new MockDriver();
+  let dbDriver = new MockDriver([{}]);
   const resolver = new Resolver(dbDriver);
   resolver.createForeignFieldsResolvers('bar');
   resolver.createForeignFieldsResolvers('bar');
@@ -176,12 +176,16 @@ test('it should create a resolver for a foreign relationship', async (done) => {
   expect(typeof resolvers.Bar.foo).toEqual('function');
 
   // Test resolver
-  let result = await resolvers.Bar.foo({}, {}, { _rootArgs: {}});
+  let result = await resolvers.Bar.foo({}, {}, {});
+  expect(result).toBeNull();
+
+  // Assert items result
+  result = await resolvers.Bar.foo({ bar: 1 }, {}, {});
   expect(typeof result).toBe('object');
 
   // Test empty result
-  dbDriver.loadItemsIn = () => [];
-  result = await resolvers.Bar.foo({}, {}, { _rootArgs: {}});
+  resolver.dbDriver = new MockDriver([]);
+  result = await resolvers.Bar.foo({ bar: 1 }, {}, {});
   expect(result).toBeNull();
   done();
 });
@@ -203,7 +207,7 @@ test('it should create a resolver for a reverse relationship', async (done) => {
   expect(typeof result.Foo.bar).toEqual('function');
 
   // Test resolver
-  result = await result.Foo.bar({}, {}, { _rootArgs: {}});
+  result = await result.Foo.bar({}, {}, {});
   expect(typeof result).toBe('object');
   expect(typeof result.total).toBe('number');
   expect(Array.isArray(result.items)).toBe(true);

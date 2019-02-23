@@ -174,6 +174,7 @@ class Resolver {
         const fcolumnname = column.__foreign.columnname;
         if (!this.resolvers[queryName]) this.resolvers[queryName] = {};
         this.resolvers[queryName][field] = async (item, args, context) => {
+          if (!item[column.name]) return null;
           args = this.parseArgsCommon(field, args);
           const ids = [item[column.name]];
           const related = await this.dbDriver.loadItemsIn(field, fcolumnname, ids, args);
