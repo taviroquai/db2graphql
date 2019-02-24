@@ -171,13 +171,14 @@ class Resolver {
       const column = this.dbDriver.dbSchema[tablename][c];
       if (column.__foreign) {
         const field = c + '_' + column.__foreign.tablename;
+        const ftablename = column.__foreign.tablename;
         const fcolumnname = column.__foreign.columnname;
         if (!this.resolvers[queryName]) this.resolvers[queryName] = {};
         this.resolvers[queryName][field] = async (item, args, context) => {
           if (!item[column.name]) return null;
           args = this.parseArgsCommon(field, args);
           const ids = [item[column.name]];
-          const related = await this.dbDriver.loadItemsIn(field, fcolumnname, ids, args);
+          const related = await this.dbDriver.loadItemsIn(ftablename, fcolumnname, ids, args);
           return related.length ? related[0] : null;
         }
       }
