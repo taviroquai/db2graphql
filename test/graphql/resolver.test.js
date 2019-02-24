@@ -173,19 +173,19 @@ test('it should create a resolver for a foreign relationship', async (done) => {
   // Assert
   expect(typeof resolvers).toEqual('object');
   expect(typeof resolvers.Bar).toEqual('object');
-  expect(typeof resolvers.Bar.foo).toEqual('function');
+  expect(typeof resolvers.Bar.bar_foo).toEqual('function');
 
   // Test resolver
-  let result = await resolvers.Bar.foo({}, {}, {});
+  let result = await resolvers.Bar.bar_foo({}, {}, {});
   expect(result).toBeNull();
 
   // Assert items result
-  result = await resolvers.Bar.foo({ bar: 1 }, {}, {});
+  result = await resolvers.Bar.bar_foo({ bar: 1 }, {}, {});
   expect(typeof result).toBe('object');
 
   // Test empty result
   resolver.dbDriver = new MockDriver([]);
-  result = await resolvers.Bar.foo({ bar: 1 }, {}, {});
+  result = await resolvers.Bar.bar_foo({ bar: 1 }, {}, {});
   expect(result).toBeNull();
   done();
 });

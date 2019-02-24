@@ -170,7 +170,7 @@ class Resolver {
     columns.map(c => {
       const column = this.dbDriver.dbSchema[tablename][c];
       if (column.__foreign) {
-        const field = column.__foreign.tablename;
+        const field = c + '_' + column.__foreign.tablename;
         const fcolumnname = column.__foreign.columnname;
         if (!this.resolvers[queryName]) this.resolvers[queryName] = {};
         this.resolvers[queryName][field] = async (item, args, context) => {
