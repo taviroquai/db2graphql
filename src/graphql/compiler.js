@@ -76,10 +76,10 @@ class Compiler {
     columns.map(c => {
       let column = this.dbSchema[tablename][c];
       if (column.__foreign) {
-        let child = column.__foreign.tablename;
+        let child = c + '_' + column.__foreign.tablename;
         this.schema[field][child] = {
           name: child,
-          type: utils.toCamelCase(child),
+          type: utils.toCamelCase(column.__foreign.tablename),
           params: {}
         }
       }

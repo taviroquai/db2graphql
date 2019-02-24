@@ -45,7 +45,7 @@ const dbSchema = {
 const schema = `type Bar {
   foo_id: Int
   id: Int
-  foo: Foo
+  foo_id_foo: Foo
 }
 
 type PageBar {
@@ -108,7 +108,7 @@ test('it should map database table to graphql type', () => {
   // Add reverse relations
   compiler.mapDbTableToGraphqlType('bar');
   result = compiler.getSDL(true);
-  expect(result).toEqual("type Foo {\n  id: Int\n  bar(filter: String, pagination: String, _debug: Boolean, _cache: Boolean): PageBar\n}\n\ntype PageFoo {\n  total: Int\n  items: [Foo]\n}\n\ntype Bar {\n  foo_id: Int\n  id: Int\n  foo: Foo\n}\n\ntype PageBar {\n  total: Int\n  items: [Bar]\n}");
+  expect(result).toEqual("type Foo {\n  id: Int\n  bar(filter: String, pagination: String, _debug: Boolean, _cache: Boolean): PageBar\n}\n\ntype PageFoo {\n  total: Int\n  items: [Foo]\n}\n\ntype Bar {\n  foo_id: Int\n  id: Int\n  foo_id_foo: Foo\n}\n\ntype PageBar {\n  total: Int\n  items: [Bar]\n}");
 });
 
 test('invalid database type', () => {
