@@ -52,6 +52,7 @@ class PostgreSQL {
       case 'character varying':
       case 'text':
       case 'binary':
+      case 'bytea':
       case 'USER-DEFINED':
         graphqlType = 'String';
         break;
