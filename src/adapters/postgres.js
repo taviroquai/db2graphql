@@ -51,6 +51,7 @@ class PostgreSQL {
       case 'timestamp with time zone':
       case 'character varying':
       case 'text':
+      case 'binary':
       case 'USER-DEFINED':
         graphqlType = 'String';
         break;
