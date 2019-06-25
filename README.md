@@ -9,8 +9,6 @@ Generates a Graphql schema and resolvers from an existing relational database
 ![Module Size Badge](https://img.shields.io/bundlephobia/min/db2graphql.svg?style=flat)
 ![Last Commit Badge](https://img.shields.io/github/last-commit/taviroquai/db2graphql.svg?style=flat)
 
-:exclamation::exclamation::exclamation: **Warning: don't use this in production yet, but your feedback is very important!**
-
 ## Features
 * Fully compatible with **express**, **koa**, **hapi** and **Apollo Server**
 * Converts an existing relational database (only PostgreSQL for now) schema to a JSON schema
