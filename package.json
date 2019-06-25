@@ -27,14 +27,15 @@
     "string-hash-64": "^1.0.3"
   },
   "devDependencies": {
-    "apollo-server": "^2.3.1",
-    "coveralls": "^3.0.2",
-    "graphql": "^14.1.1",
+    "apollo-server": "^2.6.4",
+    "coveralls": "^3.0.4",
+    "graphql": "^14.3.1",
+    "handlebars": ">=4.0.14",
     "jest": "^23.6.0",
-    "jsdoc": "^3.5.5",
-    "knex": "^0.16.3",
-    "nodemon": "^1.18.10",
-    "pg": "^7.8.0"
+    "jsdoc": "^3.6.2",
+    "knex": "^0.16.5",
+    "nodemon": "^1.19.1",
+    "pg": "^7.11.0"
   },
   "jest": {
     "coveragePathIgnorePatterns": [
