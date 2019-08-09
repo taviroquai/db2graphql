@@ -8,7 +8,7 @@
   },
   "scripts": {
     "demo-pg": "sudo psql -h localhost -U postgres -f ./demo/database.sql db2graphql",
-    "demo-mysql": "sudo mysql -h localhost -U postgres -f ./demo_mysql/database.sql db2graphql",
+    "demo-mysql": "sudo mysql --user=root --password db2graphql < ./demo_mysql/database.sql",
     "start": "nodemon demo",
     "start-mysql": "nodemon demo_mysql",
     "docs:update": "jsdoc src --debug -d docs -R README.md -t docstemplates/default",
@@ -34,7 +34,7 @@
     "graphql": "^14.3.1",
     "handlebars": ">=4.0.14",
     "jest": "^23.6.0",
-    "jsdoc": "^3.6.2",
+    "jsdoc": "^3.6.3",
     "knex": "^0.16.5",
     "mysql": "^2.17.1",
     "nodemon": "^1.19.1",
