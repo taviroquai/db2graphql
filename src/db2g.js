@@ -1,4 +1,5 @@
 const PostgreSQL = require('../src/adapters/postgres');
+const Mysql = require('../src/adapters/mysql');
 const Compiler = require('../src/graphql/compiler');
 const Resolver = require('../src/graphql/resolver');
 
@@ -30,7 +31,8 @@ class DB2Graphql {
    */
   constructor(name = '', db = null) {
     this.drivers = {
-      pg: PostgreSQL
+      pg: PostgreSQL,
+      mysql: Mysql
     }
     this.connection = db;
     this.dbSchema = null;
@@ -93,6 +95,7 @@ class DB2Graphql {
     if (!this.connection) throw new Error('Invalid Knex instance');
 
     const config = this.connection.connection().client.config;
+    namespace = config.client === 'mysql' ? config.connection.database : namespace;
     const drivername = config.client;
     if (!this.drivers[drivername]) {
       throw new Error('Database driver not available');

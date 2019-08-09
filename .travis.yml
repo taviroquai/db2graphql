@@ -3,9 +3,11 @@ node_js: lts/*
 sudo: false
 services:
   - postgresql
+  - mysql
 before_script:
   - psql -c 'create database db2graphql_test;' -U postgres
   - psql -c "alter role postgres with password 'postgres';" -U postgres
+  - mysql -e 'CREATE DATABASE IF NOT EXISTS db2graphql_test;'
 install:
   - npm install
 script:

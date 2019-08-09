@@ -7,8 +7,10 @@
     "node": ">=8.0.0"
   },
   "scripts": {
-    "demo-db": "sudo psql -h localhost -U postgres -f ./demo/database.sql db2graphql",
+    "demo-pg": "sudo psql -h localhost -U postgres -f ./demo/database.sql db2graphql",
+    "demo-mysql": "sudo mysql -h localhost -U postgres -f ./demo_mysql/database.sql db2graphql",
     "start": "nodemon demo",
+    "start-mysql": "nodemon demo_mysql",
     "docs:update": "jsdoc src --debug -d docs -R README.md -t docstemplates/default",
     "test": "jest  --maxWorkers=1 --forceExit --detectOpenHandles",
     "watch": "jest --maxWorkers=1 --forceExit --watch --coverage --detectOpenHandles",
@@ -34,6 +36,7 @@
     "jest": "^23.6.0",
     "jsdoc": "^3.6.2",
     "knex": "^0.16.5",
+    "mysql": "^2.17.1",
     "nodemon": "^1.19.1",
     "pg": "^7.11.0"
   },

@@ -1,3 +1,7 @@
+# Ignore local configuration
+demo/connection.json
+demo_mysql/connection.json
+
 # Logs
 logs
 *.log

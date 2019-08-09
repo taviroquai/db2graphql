@@ -5,27 +5,34 @@ const LruCache = require('lru-cache');
  * Available types
  */
 const availableTypes = [
-  'string',
-  'integer',
-  'bigInteger',
+  'varchar',
+  'int',
+  'smallint',
+  'mediumint',
+  'bigint',
   'text',
+  'mediumtext',
   'float',
   'decimal',
+  'double',
+  'double precision',
+  'real',
   'boolean',
   'date',
   'datetime',
   'time',
   'timestamp',
   'binary',
+  'varbinary',
   'json',
   'jsonb',
   'uuid'
 ];
 
 /**
- * PostgreSQL dialect adapter
+ * Mysql dialect adapter
  */
-class PostgreSQL {
+class Mysql {
 
   /**
    * Create a new adapter instance
@@ -54,20 +61,29 @@ class PostgreSQL {
   mapDbColumnToGraphqlType(columnname, attrs) {
     let graphqlType = '';
     switch(attrs.data_type) {
-      case 'boolean':
+      case 'tinyint':
         graphqlType = 'Boolean';
         break;
       case 'numeric':
+      case 'float':
+      case 'double':
+      case 'double precision':
+      case 'real':
+      case 'decimal':
         graphqlType = 'Float';
         break;
-      case 'integer':
+      case 'int':
+      case 'smallint':
+      case 'mediumint':
       case 'bigint':
         graphqlType = 'Int';
         break;
       case 'timestamp with time zone':
-      case 'character varying':
+      case 'varchar':
       case 'text':
+      case 'mediumtext':
       case 'binary':
+      case 'varbinary':
       case 'bytea':
       case 'USER-DEFINED':
         graphqlType = 'String';
@@ -111,8 +127,9 @@ class PostgreSQL {
   async pageTotal(tablename, args) {
     const query = this.db(tablename);
     (args) && this.addWhereFromArgs(tablename, query, args);
-    const result = await query.count();
-    return parseInt(result[0].count, 10);
+    const totalResult = await query.count();
+    let result = JSON.parse(JSON.stringify(totalResult));
+    return parseInt(result[0]['count(*)'], 10);
   }
 
   /**
@@ -142,8 +159,11 @@ class PostgreSQL {
     let count = data[pk] ? await this.db(tablename).where(pk, data[pk]).count() : false;
     if (!count || parseInt(count[0].count, 10) === 0) {
       let query = this.db(tablename);
-      query.returning(pk)
-      result = await query.insert(data);
+      await query.insert(data);
+
+      // Mysql get last inserted ID
+      const lastIdresult = await this.query('SELECT LAST_INSERT_ID() as ' + pk);
+      result = [lastIdresult[0][pk]];
     } else {
       let query = this.db(tablename)
       query.where(pk, data[pk])
@@ -237,7 +257,8 @@ class PostgreSQL {
    * @param {Object} params 
    */
   async query(sql, params) {
-    return await this.db.raw(sql, params);
+    const result = await this.db.raw(sql, params);
+    return result.length ? JSON.parse(JSON.stringify(result[0])) : [];
   }
 
   /**
@@ -319,9 +340,9 @@ class PostgreSQL {
     `;
 
     // Get table names
-    let res = await this.query(sql, [schemaname, ...exclude]);
-    for (let i = 0; i < res.rows.length; i++) {
-      tables.push({ name: res.rows[i].name });
+    let rows = await this.query(sql, [schemaname, ...exclude]);
+    for (let i = 0; i < rows.length; i++) {
+      tables.push({ name: rows[i].name });
     }
     return tables; 
   }
@@ -340,12 +361,12 @@ class PostgreSQL {
       FROM information_schema.columns
       WHERE table_schema = ? AND table_name = ?
     `;
-    let res = await this.query(sql, [schemaname, tablename]);
-    for (let j = 0; j < res.rows.length; j++) {
+    let rows = await this.query(sql, [schemaname, tablename]);
+    for (let j = 0; j < rows.length; j++) {
       columns.push({
-        name: res.rows[j].name,
-        is_nullable: res.rows[j].is_nullable,
-        data_type: res.rows[j].data_type
+        name: rows[j].name,
+        is_nullable: rows[j].is_nullable,
+        data_type: rows[j].data_type
       });
     }
     return columns;
@@ -361,29 +382,24 @@ class PostgreSQL {
   async getForeignKeys(schemaname, tablename) {
     const fkeys = [];
     const sql = `
-      SELECT
-        tc.table_schema as schemaname, 
-        tc.constraint_name, 
-        tc.table_name as tablename, 
-        kcu.column_name as columnname, 
-        ccu.table_schema AS ftableschema,
-        ccu.table_name AS ftablename,
-        ccu.column_name AS fcolumnname 
-      FROM 
-        information_schema.table_constraints AS tc 
-      JOIN information_schema.key_column_usage AS kcu
-        ON tc.constraint_name = kcu.constraint_name
-        AND tc.table_schema = kcu.table_schema
-      JOIN information_schema.constraint_column_usage AS ccu
-        ON ccu.constraint_name = tc.constraint_name
-        AND ccu.table_schema = tc.table_schema
-      WHERE tc.constraint_type = 'FOREIGN KEY'
-        AND tc.table_schema = ?
-        AND tc.table_name = ?;
+      SELECT 
+        tc.CONSTRAINT_SCHEMA as schemaname,
+        tc.CONSTRAINT_NAME as constraint_name,
+        tc.TABLE_NAME as tablename,
+        ccu.COLUMN_NAME as columnname,
+        ccu.REFERENCED_TABLE_SCHEMA as ftableschema,
+        ccu.REFERENCED_TABLE_NAME as ftablename,
+        ccu.REFERENCED_COLUMN_NAME as fcolumnname
+      FROM information_schema.TABLE_CONSTRAINTS tc 
+      LEFT JOIN information_schema.KEY_COLUMN_USAGE ccu ON tc.CONSTRAINT_NAME = ccu.CONSTRAINT_NAME 
+      WHERE tc.CONSTRAINT_TYPE = 'FOREIGN KEY' 
+        AND tc.CONSTRAINT_SCHEMA = ccu.REFERENCED_TABLE_SCHEMA
+        AND tc.TABLE_SCHEMA = ?
+        AND tc.TABLE_NAME = ?;
     `;
-    let res = await this.query(sql, [schemaname, tablename]);
-    for (let j = 0; j < res.rows.length; j++) {
-      fkeys.push(res.rows[j]); 
+    let rows = await this.query(sql, [schemaname, tablename]);
+    for (let j = 0; j < rows.length; j++) {
+      fkeys.push(rows[j]); 
     }
     return fkeys;
   }
@@ -405,12 +421,12 @@ class PostgreSQL {
       JOIN information_schema.key_column_usage AS kcu
         ON tc.constraint_name = kcu.constraint_name
         AND tc.table_schema = kcu.table_schema
-      WHERE tc.constraint_type = 'PRIMARY KEY'
+      WHERE tc.CONSTRAINT_TYPE = 'PRIMARY KEY'
         AND tc.table_schema = ?
         AND tc.table_name = ?;
     `;
-    let res = await this.query(sql, [schemaname, tablename]);
-    return res.rows.length ? res.rows[0].columnname : pk;
+    let rows = await this.query(sql, [schemaname, tablename]);
+    return rows.length ? rows[0].columnname : pk;
   }
 
   /**
@@ -498,4 +514,4 @@ class PostgreSQL {
   }
 }
 
-module.exports = PostgreSQL;
+module.exports = Mysql;

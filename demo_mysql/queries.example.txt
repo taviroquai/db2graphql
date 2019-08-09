@@ -1,0 +1,52 @@
+# Create user
+mutation {
+  putItemUsers(
+    username: "admin"
+    password: ""
+  ) {
+    id
+  }
+}
+
+# Create category
+mutation {
+  putItemCategories(
+    title: "category1"
+  ) {
+    id
+  }
+}
+
+# Create post
+mutation {
+  putItemPosts(
+    title: "category1"
+    body: "<p>bla</p>"
+    users_id: 1
+    categories_id: 1
+  ) {
+    id
+  }
+}
+
+# Get all data at once
+query{
+  getFirstUsers(
+    filter: "users.id=1"
+    pagination: "posts:limit=10|categories:limit=10"
+  ) {
+    id
+    username
+    posts {
+      total
+      items {
+        id
+        title
+        categories_id_categories {
+          id
+          title
+        }
+      }
+    }
+  }
+}
