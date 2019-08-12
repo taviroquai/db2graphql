@@ -257,8 +257,8 @@ class Mysql {
    * @param {Object} params 
    */
   async query(sql, params) {
-    const result = await this.db.raw(sql, params);
-    return result.length ? JSON.parse(JSON.stringify(result[0])) : [];
+    let result = (await this.db.raw(sql, params))[0];
+    return JSON.parse(JSON.stringify(result));
   }
 
   /**
@@ -464,7 +464,7 @@ class Mysql {
    * @param {String} schemaname 
    * @param {Array} exclude 
    */
-  async getSchema(schemaname = 'public', exclude = []) {
+  async getSchema(schemaname, exclude = []) {
 
     let dbSchema = {};
     

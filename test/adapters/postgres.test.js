@@ -47,7 +47,11 @@ describe('Postgres Driver', () => {
     await adapter.convertConditionToWhereClause(query, ['~', 'id', 'text']);
     await adapter.convertConditionToWhereClause(query, ['#', 'id', 'text']);
     await adapter.convertConditionToWhereClause(query, ['<=>', 'id', 1]);
-    done();
+    
+    // Close connection
+    db.destroy(() => {
+      done();
+    });
   });
 
   test('it should add where clause from args', async (done) => {
@@ -72,7 +76,11 @@ describe('Postgres Driver', () => {
     await adapter.addWhereFromArgs('foo', query, argsEmpty);
     result = query.toSQL();
     expect(/where/i.test(result.sql)).toBe(false);
-    done();
+    
+    // Close connection
+    db.destroy(() => {
+      done();
+    });
   });
 
   test('it should add pagination from args', async (done) => {
@@ -101,7 +109,11 @@ describe('Postgres Driver', () => {
     expect(/limit/i.test(result.sql)).toBe(false);
     expect(/offset/i.test(result.sql)).toBe(false);
     expect(/order/i.test(result.sql)).toBe(false);
-    done();
+    
+    // Close connection
+    db.destroy(() => {
+      done();
+    });
   });
 
   test('it should run a raw query', async (done) => {
@@ -111,7 +123,11 @@ describe('Postgres Driver', () => {
     expect(typeof result).toEqual('object');
     expect(typeof result.rowCount).toEqual('number');
     expect(Array.isArray(result.rows)).toBe(true);
-    done();
+    
+    // Close connection
+    db.destroy(() => {
+      done();
+    });
   });
 
   test('it should return a page of items', async (done) => {
@@ -141,7 +157,11 @@ describe('Postgres Driver', () => {
     expect(Array.isArray(result)).toBe(true);
     result = await adapter.page('foo', { _debug: true });
     expect(Array.isArray(result)).toBe(true);
-    done();
+    
+    // Close connection
+    db.destroy(() => {
+      done();
+    });
   });
 
   test('it should return a total of items', async (done) => {
@@ -161,7 +181,11 @@ describe('Postgres Driver', () => {
     const adapter = new PostgreSQL(db);
     const result = await adapter.pageTotal('foo', schema);
     expect(typeof result).toBe("number");
-    done();
+    
+    // Close connection
+    db.destroy(() => {
+      done();
+    });
   });
 
   test('it should return one item', async (done) => {
@@ -188,7 +212,11 @@ describe('Postgres Driver', () => {
     expect(typeof result).toBe("object");
     result = await adapter.firstOf('foo', { _cache: true });
     expect(typeof result).toBe("object");
-    done();
+    
+    // Close connection
+    db.destroy(() => {
+      done();
+    });
   });
 
   test('it should save one item and return it', async (done) => {
@@ -211,7 +239,11 @@ describe('Postgres Driver', () => {
     expect(result.length).toBe(1);
     result = await adapter.putItem('foo', { id: result[0], bar: true });
     expect(typeof result).toBe("number");
-    done();
+    
+    // Close connection
+    db.destroy(() => {
+      done();
+    });
   });
 
   test('should build sql fragment condition', () => {
@@ -360,7 +392,11 @@ describe('Postgres Driver', () => {
     const adapter = new PostgreSQL(db);
     const result = await adapter.getSchema();
     expect(result).toEqual(expected);
-    done();
+    
+    // Close connection
+    db.destroy(() => {
+      done();
+    });
   });
 
   test('it should return the complete database schema as json without excluded items', async (done) => {
@@ -392,7 +428,11 @@ describe('Postgres Driver', () => {
     const adapter = new PostgreSQL(db);
     const result = await adapter.getSchema('public', ['foo']);
     expect(result).toEqual(expected);
-    done();
+    
+    // Close connection
+    db.destroy(() => {
+      done();
+    });
   });
 
   test('it should load items from table using records ids', async (done) => {
@@ -439,7 +479,10 @@ describe('Postgres Driver', () => {
     result = await adapter.loadItemsIn('bar', 'foo', [1, 2], args);
     expect(result).toEqual([{ foo: 2, bar: 2 }]);
     
-    done();
+    // Close connection
+    db.destroy(() => {
+      done();
+    });
   });
 
 });

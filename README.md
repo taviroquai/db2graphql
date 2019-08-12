@@ -66,9 +66,13 @@ query {
 ```js
 const knex = require('knex');
 const db2g = require('db2graphql');
-const api = new db2g('demo', knex(require('./connection.json')));
-await api.connect();
-const schema = api.getSchema();
+const conn = knex(require('./connection.json'));
+const api = new db2g('demo', conn);
+api.connect().then(() => {
+  const schema = api.getSchema();
+  console.log(schema);
+  conn.destroy();
+});
 ```
 
 **Example of file connection.json**

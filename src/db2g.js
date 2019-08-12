@@ -95,7 +95,6 @@ class DB2Graphql {
     if (!this.connection) throw new Error('Invalid Knex instance');
 
     const config = this.connection.connection().client.config;
-    namespace = config.client === 'mysql' ? config.connection.database : namespace;
     const drivername = config.client;
     if (!this.drivers[drivername]) {
       throw new Error('Database driver not available');

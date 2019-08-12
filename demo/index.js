@@ -5,7 +5,8 @@ const { ApolloServer, gql } = require('apollo-server');
 const start = async (cb) => {
 
   /****************************************************** */
-  const api = new db2g('demo', knex(require('./connection.json')));
+  const config = require('./connection.json');
+  const api = new db2g('demo', knex(config));
   await api.connect(); // Connects to database and extracts database schema
 
   // Get generated schema and resolvers

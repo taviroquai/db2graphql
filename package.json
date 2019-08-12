@@ -12,9 +12,9 @@
     "start": "nodemon demo",
     "start-mysql": "nodemon demo_mysql",
     "docs:update": "jsdoc src --debug -d docs -R README.md -t docstemplates/default",
-    "test": "jest  --maxWorkers=1 --forceExit --detectOpenHandles",
-    "watch": "jest --maxWorkers=1 --forceExit --watch --coverage --detectOpenHandles",
-    "travis_test": "jest --detectOpenHandles --forceExit --maxWorkers=1 --coverage --coverageReporters=text-lcov | coveralls"
+    "test": "jest  --maxWorkers=1",
+    "watch": "jest --maxWorkers=1 --watch --coverage",
+    "travis_test": "jest --maxWorkers=1 --coverage --coverageReporters=text-lcov | coveralls"
   },
   "keywords": [
     "database",
@@ -45,6 +45,7 @@
       "/node_modules/",
       "/cache/",
       "/demo/",
+      "/demo_mysql/",
       "/docs/"
     ],
     "collectCoverageFrom": [
@@ -53,6 +54,7 @@
     "watchPathIgnorePatterns": [
       "/migrations/",
       "/demo/",
+      "/demo_mysql/",
       "/docs/"
     ]
   }

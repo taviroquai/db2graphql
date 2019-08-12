@@ -3,6 +3,8 @@ const knex = require('knex');
 const connection = require('./connection.json');
 const db = knex(connection);
 
+afterAll(() => db.destroy());
+
 describe('Db2graphql', () => {
 
   test('it should throw error on invalid database', async (done) => {

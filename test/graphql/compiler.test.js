@@ -4,6 +4,8 @@ const knex = require('knex');
 const connection = require('../connection.json');
 const db = knex(connection);
 
+afterAll(() => db.destroy());
+
 const dbSchema = {
   "bar": {
     "__pk": "foo",
