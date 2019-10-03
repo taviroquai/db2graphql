@@ -48,6 +48,33 @@ class DB2Graphql {
   }
 
   /**
+   * Adds a Graphql field to the schema.
+   * If it does not exists, it gets created.
+   * 
+   * <p>Usage example:</p>
+   * 
+   * <pre>
+   * addField('Users.fullname', 'String', (user) => user.firstname + user.lastname)
+   * </pre>
+   * 
+   * @access public
+   * @param {String} path           The field path of the resolver ie. Query.getUser
+   * @param {String|Array} returns  The Graphql returning type ie. Boolean or 'User' or ['User']
+   * @param {Function} resolver     The resolver callback
+   * @param {Object} [params={}]    The query arguments
+   * 
+   * @returns {DB2Graphql}        The self instance for fluent interface 
+   */
+  addField(path, returns, resolver, params = {}) {
+    let segments = path.trim().split('.').filter(i => !!i);
+    if (segments.length < 2) throw new Error('addField path must be in format Type.field');
+    let field = segments.pop();
+    let type = segments.pop();
+    this.add(type, field, returns, resolver, params);
+    return this;
+  }
+
+  /**
    * Adds a Graphql query to the schema.
    * If type does not exists, it gets created.
    * 
