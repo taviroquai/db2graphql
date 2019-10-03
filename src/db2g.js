@@ -102,6 +102,20 @@ class DB2Graphql {
   /**
    * Set before hook
    * 
+   * <pre>
+   * function validator(type, field, parent, args, context)
+   * function rejected(type, field, parent, args, context)
+   * </pre>
+   * 
+   * Where:
+   * <pre>
+   *  - type: Graphql type  
+   *  - field: Graphql field  
+   *  - parent: parent resolved  
+   *  - args: request arguments  
+   *  - context: context information  
+   * </pre>
+   * 
    * @param {Function} validator  The validator callback. Must return true/false
    * @param {Function} rejected   The rejected callback. Must return resolver type/null
    */
