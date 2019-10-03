@@ -473,6 +473,6 @@ describe('Mysql Driver', () => {
     // Close connection
     await db.destroy();
     done();
-  });
+  }, 15000);
 
 });
