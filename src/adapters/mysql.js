@@ -365,8 +365,8 @@ class Mysql {
     for (let j = 0; j < rows.length; j++) {
       columns.push({
         name: rows[j].name,
-        is_nullable: rows[j].is_nullable,
-        data_type: rows[j].data_type
+        is_nullable: rows[j]['IS_NULLABLE'] || rows[j]['is_nullable'],
+        data_type: rows[j]['DATA_TYPE'] || rows[j]['data_type']
       });
     }
     return columns;
@@ -423,9 +423,10 @@ class Mysql {
         AND tc.table_schema = kcu.table_schema
       WHERE tc.CONSTRAINT_TYPE = 'PRIMARY KEY'
         AND tc.table_schema = ?
-        AND tc.table_name = ?;
+        AND tc.table_name = ?
+        AND kcu.table_name = ?;
     `;
-    let rows = await this.query(sql, [schemaname, tablename]);
+    let rows = await this.query(sql, [schemaname, tablename, tablename]);
     return rows.length ? rows[0].columnname : pk;
   }
 
