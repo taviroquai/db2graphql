@@ -49,9 +49,8 @@ describe('Mysql Driver', () => {
     await adapter.convertConditionToWhereClause(query, ['<=>', 'id', 1]);
     
     // Close connection
-    db.destroy(() => {
-      done();
-    });
+    await db.destroy();
+    done();
   });
 
   test('it should add where clause from args', async (done) => {
@@ -78,9 +77,8 @@ describe('Mysql Driver', () => {
     expect(/where/i.test(result.sql)).toBe(false);
     
     // Close connection
-    db.destroy(() => {
-      done();
-    });
+    await db.destroy();
+    done();
   });
 
   test('it should add pagination from args', async (done) => {
@@ -111,9 +109,8 @@ describe('Mysql Driver', () => {
     expect(/order/i.test(result.sql)).toBe(false);
     
     // Close connection
-    db.destroy(() => {
-      done();
-    });
+    await db.destroy();
+    done();
   });
 
   test('it should run a raw query', async (done) => {
@@ -125,9 +122,8 @@ describe('Mysql Driver', () => {
     expect(Array.isArray(result)).toBe(true);
     
     // Close connection
-    db.destroy(() => {
-      done();
-    });
+    await db.destroy();
+    done();
   });
 
   test('it should return a page of items', async (done) => {
@@ -159,9 +155,8 @@ describe('Mysql Driver', () => {
     expect(Array.isArray(result)).toBe(true);
 
     // Close connection
-    db.destroy(() => {
-      done();
-    });
+    await db.destroy();
+    done();
   });
 
   test('it should return a total of items', async (done) => {
@@ -183,9 +178,8 @@ describe('Mysql Driver', () => {
     expect(typeof result).toBe("number");
 
     // Close connection
-    db.destroy(() => {
-      done();
-    });
+    await db.destroy();
+    done();
   });
 
   test('it should return one item', async (done) => {
@@ -214,9 +208,8 @@ describe('Mysql Driver', () => {
     expect(typeof result).toBe("object");
 
     // Close connection
-    db.destroy(() => {
-      done();
-    });
+    await db.destroy();
+    done();
   });
 
   test('it should save one item and return it', async (done) => {
@@ -241,9 +234,8 @@ describe('Mysql Driver', () => {
     expect(typeof result).toBe("number");
     
     // Close connection
-    db.destroy(() => {
-      done();
-    });
+    await db.destroy();
+    done();
   });
 
   test('should build sql fragment condition', () => {
@@ -264,7 +256,7 @@ describe('Mysql Driver', () => {
 
   test('it should return the database columns for table', async (done) => {
     const adapter = new Mysql();
-    const expected = [{ "name": "foo", "data_type": "integer" }];
+    const expected = [{ "name": "foo", "is_nullable": "YES", "data_type": "integer" }];
     adapter.query = async () => (expected);
     const result = await adapter.getColumns();
     expect(result).toEqual(expected);
@@ -360,7 +352,7 @@ describe('Mysql Driver', () => {
         }
       },
       "foo": {
-        "__pk": "foo",
+        "__pk": "bar",
         "__reverse": [
           {
             "columnname": "bar",
@@ -389,16 +381,14 @@ describe('Mysql Driver', () => {
       table.integer('bar');
       table.foreign('bar').references('foo.bar')
     });
-
     const adapter = new Mysql(db);
     const result = await adapter.getSchema(schemaname);
     expect(result).toEqual(expected);
     
     // Close connection
-    db.destroy(() => {
-      done();
-    });
-  });
+    await db.destroy();
+    done();
+  }, 15000);
 
   test('it should return the complete database schema as json without excluded items', async (done) => {
     
@@ -432,10 +422,9 @@ describe('Mysql Driver', () => {
     expect(result).toEqual(expected);
     
     // Close connection
-    db.destroy(() => {
-      done();
-    });
-  });
+    await db.destroy();
+    done();
+  }, 15000);
 
   test('it should load items from table using records ids', async (done) => {
     
@@ -482,9 +471,8 @@ describe('Mysql Driver', () => {
     expect(result).toEqual([{ foo: 2, bar: 2 }]);
     
     // Close connection
-    db.destroy(() => {
-      done();
-    });
+    await db.destroy();
+    done();
   });
 
 });

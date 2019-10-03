@@ -3,7 +3,16 @@ const knex = require('knex');
 const connection = require('./connection.json');
 const db = knex(connection);
 
-afterAll(() => db.destroy());
+afterAll( async (done) => {
+  await db.destroy();
+  done();
+});
+
+beforeEach(async (done) => {
+  await db.schema.dropTableIfExists('foo');
+  await db.schema.dropTableIfExists('bar');
+  done();
+});
 
 describe('Db2graphql', () => {
 
@@ -246,7 +255,7 @@ type Mutation {
 
   test('it should add a graphql query', async (done) => {
     const api = new db2g();
-    api.add("Query", 'getFoo', 'Foo', (root, args, context) => {});
+    api.add('Query', 'getFoo', 'Foo', (root, args, context) => {});
     const result = api.getSchema();
     expect(result).toEqual("type Query {\n  getFoo: Foo\n}");
     done();
@@ -257,6 +266,21 @@ type Mutation {
     api.add('Mutation', 'putFoo', 'Foo', (root, args, context) => {});
     const result = api.getSchema();
     expect(result).toEqual("type Mutation {\n  putFoo: Foo\n}");
+    done();
+  });
+
+  test('it should throw exception on adding invalid field path', () => {
+    const api = new db2g();
+    expect(() => {
+      api.addField("Query.", 'Foo', (root, args, context) => {});
+    }).toThrow(new Error('addField path must be in format Type.field'));
+  });
+
+  test('it should add a graphql field by path', async (done) => {
+    const api = new db2g();
+    api.addField("Query.getFoo", 'Foo', (root, args, context) => {});
+    const result = api.getSchema();
+    expect(result).toEqual("type Query {\n  getFoo: Foo\n}");
     done();
   });
 
