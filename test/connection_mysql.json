@@ -5,7 +5,7 @@
   "connection": {
     "host" : "localhost",
     "user" : "root",
-    "password" : "toor",
+    "password" : "",
     "database" : "db2graphql_test"
   },
   "exclude": []
