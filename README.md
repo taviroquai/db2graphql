@@ -113,12 +113,12 @@ const start = async (cb) => {
   api.isAuthorized(validator, denied);
 
   // Example of adding extra field
-  api.add('Users', 'fullname', 'String', (parent, args, context) => {
+  api.addField('Users.fullname', 'String', (parent, args, context) => {
     return String(args.foo + parent.username);
   }, { foo: 'String' });
 
   // Example of overiding existing schema
-  api.add('Users', 'password', 'String', () => '');
+  api.addField('Users.password', 'String', () => '');
 
   // Get generated schema and resolvers
   const schema = api.getSchema();
@@ -146,7 +146,7 @@ const db2g = require('db2graphql');
 const api = new db2g('demo');
 
 // Add a query and resolver
-api.add('Query', 'getFoo', 'Boolean', async (root, args, context) => {
+api.addField('Query.getFoo', 'Boolean', async (root, args, context) => {
   return true;
 }, { param: 'String!' });
 
