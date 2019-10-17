@@ -1,6 +1,7 @@
 <p align="center">
     <img width="400" height="88" src="/art/logo.png" alt="db2graphql logo" />
 </p>
+[<p align="right">Logo by @Caneco</p>](https://twitter.com/Caneco)
 
 # db2graphql
 
