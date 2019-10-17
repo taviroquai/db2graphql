@@ -1,4 +1,6 @@
-![db2graphql logo](logo.gif)
+<p align="center">
+    <img width="400" height="88" src="/art/logo.png" alt="db2graphql logo" />
+</p>
 [<p align="right">Logo by @Caneco</p>](https://twitter.com/Caneco)
 
 # db2graphql
@@ -171,6 +173,11 @@ $ npm run start
 ```
 
 Open browser on http://localhost:4000 and see your Graphql API ready!
+
+## Credits
+
+- Created by [Marco Afonso](https://twitter.com/AfonsoD3v)
+- Logo by [Caneco](https://twitter.com/caneco)
 
 ## Collab
 
