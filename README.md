@@ -1,3 +1,7 @@
+<p align="center">
+    <img width="400" height="201" src="/art/logo.png" alt="db2graphql logo" />
+</p>
+
 # db2graphql
 
 Generates a Graphql schema and resolvers from an existing relational database
@@ -168,6 +172,11 @@ $ npm run start
 ```
 
 Open browser on http://localhost:4000 and see your Graphql API ready!
+
+## Credits
+
+- Created by [Marco Afonso](https://twitter.com/AfonsoD3v)
+- Logo by [Caneco](https://twitter.com/caneco)
 
 ## Collab
 
