@@ -1,5 +1,5 @@
 <p align="center">
-    <img width="400" height="201" src="/art/logo.png" alt="db2graphql logo" />
+    <img width="400" height="88" src="/art/logo.png" alt="db2graphql logo" />
 </p>
 
 # db2graphql
