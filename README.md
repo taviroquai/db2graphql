@@ -1,3 +1,6 @@
+![db2graphql logo](logo.gif)
+[<p align="right">Logo by @Caneco</p>](https://twitter.com/Caneco)
+
 # db2graphql
 
 Generates a Graphql schema and resolvers from an existing relational database
