@@ -3,6 +3,8 @@ const knex = require('knex');
 const connection = require('./connection.json');
 const db = knex(connection);
 
+const inputCondition = "\n\ninput Condition {\n  sql: String!\n  val: [String!]!\n}";
+
 afterAll( async (done) => {
   await db.destroy();
   done();
@@ -78,8 +80,8 @@ describe('Db2graphql', () => {
 
     const schema = `type Query {
   getAPIName: String
-  getPageFoo(filter: String, pagination: String, _debug: Boolean, _cache: Boolean): PageFoo
-  getFirstFoo(filter: String, pagination: String, _debug: Boolean, _cache: Boolean): Foo
+  getPageFoo(filter: String, pagination: String, where: Condition, _debug: Boolean, _cache: Boolean): PageFoo
+  getFirstFoo(filter: String, pagination: String, where: Condition, _debug: Boolean, _cache: Boolean): Foo
 }
 
 type Foo {
@@ -93,6 +95,11 @@ type PageFoo {
 
 type Mutation {
   putItemFoo(_debug: Boolean, bar: Int): Foo
+}
+
+input Condition {
+  sql: String!
+  val: [String!]!
 }`
     const api = new db2g('test', db);
     await api.connect();
@@ -124,7 +131,9 @@ type Mutation {
     const api = new db2g();
     api.add('Foo', 'bar', 'Boolean');
     const result = api.getSchema();
-    expect(result).toEqual("type Foo {\n  bar: Boolean\n}");
+    let expected = "type Foo {\n  bar: Boolean\n}"
+     + inputCondition;
+    expect(result).toEqual(expected);
     done();
   });
 
@@ -257,7 +266,9 @@ type Mutation {
     const api = new db2g();
     api.add('Query', 'getFoo', 'Foo', (root, args, context) => {});
     const result = api.getSchema();
-    expect(result).toEqual("type Query {\n  getFoo: Foo\n}");
+    let expected = "type Query {\n  getFoo: Foo\n}"
+      + inputCondition;
+    expect(result).toEqual(expected);
     done();
   });
 
@@ -265,7 +276,9 @@ type Mutation {
     const api = new db2g();
     api.add('Mutation', 'putFoo', 'Foo', (root, args, context) => {});
     const result = api.getSchema();
-    expect(result).toEqual("type Mutation {\n  putFoo: Foo\n}");
+    let expected = "type Mutation {\n  putFoo: Foo\n}"
+      + inputCondition;
+    expect(result).toEqual(expected);
     done();
   });
 
@@ -280,7 +293,9 @@ type Mutation {
     const api = new db2g();
     api.addField("Query.getFoo", 'Foo', (root, args, context) => {});
     const result = api.getSchema();
-    expect(result).toEqual("type Query {\n  getFoo: Foo\n}");
+    let expected = "type Query {\n  getFoo: Foo\n}"
+      + inputCondition;
+    expect(result).toEqual(expected);
     done();
   });
 
@@ -288,7 +303,9 @@ type Mutation {
     const api = new db2g();
     api.add('Mutation', 'putFoo', 'Foo', (root, args, context) => {}, { bar: 'Boolean' });
     const result = api.getSchema();
-    expect(result).toEqual("type Mutation {\n  putFoo(bar: Boolean): Foo\n}");
+    let expected = "type Mutation {\n  putFoo(bar: Boolean): Foo\n}"
+      + inputCondition;
+    expect(result).toEqual(expected);
     done();
   });
 

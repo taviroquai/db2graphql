@@ -94,6 +94,7 @@ class Compiler {
         params: {
           filter: 'String',
           pagination: 'String',
+          where: 'Condition',
           _debug: 'Boolean',
           _cache: 'Boolean'
         }
@@ -122,7 +123,7 @@ class Compiler {
    */
   mapDbTableToGraphqlQuery(tablename) {
     const field = utils.toCamelCase(tablename);
-    const params = { filter: 'String', pagination: 'String', _debug: 'Boolean', _cache: 'Boolean' };
+    const params = { filter: 'String', pagination: 'String', where: 'Condition', _debug: 'Boolean', _cache: 'Boolean' };
     if (!this.schema.Query) this.schema['Query'] = {};
     this.schema.Query['getPage' + field] = {
       name: 'getPage' + field,
@@ -142,7 +143,7 @@ class Compiler {
    */
   mapDbTableToGraphqlFirstOf(tablename) {
     const field = utils.toCamelCase(tablename);
-    const params = { filter: 'String', pagination: 'String', _debug: 'Boolean', _cache: 'Boolean' };
+    const params = { filter: 'String', pagination: 'String', where: 'Condition', _debug: 'Boolean', _cache: 'Boolean' };
     if (!this.schema.Query) this.schema['Query'] = {};
     this.schema.Query['getFirst' + field] = {
       name: 'getFirst' + field,
@@ -221,7 +222,14 @@ class Compiler {
         });
         items.push("type " + field + " {\n" + subfields.join("\n") + "\n}");
       }
-      this.sdl = items.join("\n\n") + "\n";
+      this.sdl = items.join("\n\n");
+      
+      // Add condition type
+      if (items.length) {
+        this.sdl += "\n\ninput Condition {\n  sql: String!\n  val: [String!]!\n}";
+      }
+      
+      this.sdl += "\n";
     }
     return this.sdl.trim();
   }

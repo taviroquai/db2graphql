@@ -81,6 +81,28 @@ describe('Mysql Driver', () => {
     done();
   });
 
+  test('it should add where clause from args with where input', async (done) => {
+    const adapter = new Mysql();
+    const db = knex(connection);
+    let query = db.table('foo');
+    let val = "1";
+    let args = {
+      where: {
+        sql: "id = ?",
+        val: [val]
+      }
+    }
+    await adapter.addWhereFromArgsWhere(query, args);
+    let result = query.toSQL();
+    expect(/where/i.test(result.sql)).toBe(true);
+    expect(/id\s=\s\?/i.test(result.sql)).toBe(true);
+    expect(result.bindings[0]).toBe(val);
+    
+    // Close connection
+    await db.destroy();
+    done();
+  });
+
   test('it should add pagination from args', async (done) => {
     const db = knex(connection);
     const adapter = new Mysql(db);
@@ -458,6 +480,11 @@ describe('Mysql Driver', () => {
 
     // Test with args
     let args = { filter: { bar: [[ '=', 'bar', 2 ]] } };
+    result = await adapter.loadItemsIn('bar', 'foo', [1, 2], args);
+    expect(result).toEqual([{ foo: 2, bar: 2 }]);
+
+    // Test with arg where
+    args = { where: { sql: "bar = ?", val: ["2"] }, _cache: false };
     result = await adapter.loadItemsIn('bar', 'foo', [1, 2], args);
     expect(result).toEqual([{ foo: 2, bar: 2 }]);
 

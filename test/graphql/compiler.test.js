@@ -56,10 +56,10 @@ type PageBar {
 }
 
 type Query {
-  getPageBar(filter: String, pagination: String, _debug: Boolean, _cache: Boolean): PageBar
-  getFirstBar(filter: String, pagination: String, _debug: Boolean, _cache: Boolean): Bar
-  getPageFoo(filter: String, pagination: String, _debug: Boolean, _cache: Boolean): PageFoo
-  getFirstFoo(filter: String, pagination: String, _debug: Boolean, _cache: Boolean): Foo
+  getPageBar(filter: String, pagination: String, where: Condition, _debug: Boolean, _cache: Boolean): PageBar
+  getFirstBar(filter: String, pagination: String, where: Condition, _debug: Boolean, _cache: Boolean): Bar
+  getPageFoo(filter: String, pagination: String, where: Condition, _debug: Boolean, _cache: Boolean): PageFoo
+  getFirstFoo(filter: String, pagination: String, where: Condition, _debug: Boolean, _cache: Boolean): Foo
 }
 
 type Mutation {
@@ -69,13 +69,20 @@ type Mutation {
 
 type Foo {
   id: Int
-  bar(filter: String, pagination: String, _debug: Boolean, _cache: Boolean): PageBar
+  bar(filter: String, pagination: String, where: Condition, _debug: Boolean, _cache: Boolean): PageBar
 }
 
 type PageFoo {
   total: Int
   items: [Foo]
+}
+
+input Condition {
+  sql: String!
+  val: [String!]!
 }`
+
+const inputCondition = "\n\ninput Condition {\n  sql: String!\n  val: [String!]!\n}";
 
 const invaliddbSchema = {
   "bar": {
@@ -95,7 +102,8 @@ test('it should create a new Graphql compiler', () => {
 test('it should map database table to graphql type', () => {
   const dbDriver = new PostgreSQL(null, dbSchema);
   const compiler = new Compiler(dbSchema, dbDriver);
-  let expected = "type Foo {\n  id: Int\n  bar(filter: String, pagination: String, _debug: Boolean, _cache: Boolean): PageBar\n}\n\ntype PageFoo {\n  total: Int\n  items: [Foo]\n}";
+  let expected = "type Foo {\n  id: Int\n  bar(filter: String, pagination: String, where: Condition, _debug: Boolean, _cache: Boolean): PageBar\n}\n\ntype PageFoo {\n  total: Int\n  items: [Foo]\n}"
+     + inputCondition;
   
   // Test non-existsing field
   compiler.mapDbTableToGraphqlType('foo');
@@ -110,7 +118,9 @@ test('it should map database table to graphql type', () => {
   // Add reverse relations
   compiler.mapDbTableToGraphqlType('bar');
   result = compiler.getSDL(true);
-  expect(result).toEqual("type Foo {\n  id: Int\n  bar(filter: String, pagination: String, _debug: Boolean, _cache: Boolean): PageBar\n}\n\ntype PageFoo {\n  total: Int\n  items: [Foo]\n}\n\ntype Bar {\n  foo_id: Int\n  id: Int\n  foo_id_foo: Foo\n}\n\ntype PageBar {\n  total: Int\n  items: [Bar]\n}");
+  expected = "type Foo {\n  id: Int\n  bar(filter: String, pagination: String, where: Condition, _debug: Boolean, _cache: Boolean): PageBar\n}\n\ntype PageFoo {\n  total: Int\n  items: [Foo]\n}\n\ntype Bar {\n  foo_id: Int\n  id: Int\n  foo_id_foo: Foo\n}\n\ntype PageBar {\n  total: Int\n  items: [Bar]\n}"
+    + inputCondition;
+  expect(result).toEqual(expected);
 });
 
 test('invalid database type', () => {
@@ -118,7 +128,9 @@ test('invalid database type', () => {
   const compiler = new Compiler(invaliddbSchema, dbDriver);
   compiler.mapDbTableToGraphqlType('bar');
   let result = compiler.getSDL(true);
-  expect(result).toEqual("type Bar {\n\n}\n\ntype PageBar {\n  total: Int\n  items: [Bar]\n}");
+  let expected = "type Bar {\n\n}\n\ntype PageBar {\n  total: Int\n  items: [Bar]\n}"
+    + inputCondition;
+  expect(result).toEqual(expected);
 });
 
 test('it should create a getPage definition for tablename', () => {
@@ -126,7 +138,8 @@ test('it should create a getPage definition for tablename', () => {
   const compiler = new Compiler(dbDriver, dbSchema);
   compiler.mapDbTableToGraphqlQuery('foo');
   let result = compiler.getSDL(true);
-  let expected = "type Query {\n  getPageFoo(filter: String, pagination: String, _debug: Boolean, _cache: Boolean): PageFoo\n}";
+  let expected = "type Query {\n  getPageFoo(filter: String, pagination: String, where: Condition, _debug: Boolean, _cache: Boolean): PageFoo\n}"
+    + inputCondition;
   expect(result).toEqual(expected);
 });
 
@@ -135,7 +148,8 @@ test('it should create a getFirst definition for tablename', () => {
   const compiler = new Compiler(dbDriver, dbSchema);
   compiler.mapDbTableToGraphqlFirstOf('foo');
   let result = compiler.getSDL(true);
-  let expected = "type Query {\n  getFirstFoo(filter: String, pagination: String, _debug: Boolean, _cache: Boolean): Foo\n}";
+  let expected = "type Query {\n  getFirstFoo(filter: String, pagination: String, where: Condition, _debug: Boolean, _cache: Boolean): Foo\n}"
+    + inputCondition;
   expect(result).toEqual(expected);
 });
 
@@ -144,7 +158,9 @@ test('it should create a putItem definition for tablename', () => {
   const compiler = new Compiler(dbSchema, dbDriver);
   compiler.mapDbTableToGraphqlMutation('foo');
   let result = compiler.getSDL();
-  expect(result).toEqual("type Mutation {\n  putItemFoo(_debug: Boolean, id: Int): Foo\n}");
+  let expected = "type Mutation {\n  putItemFoo(_debug: Boolean, id: Int): Foo\n}"
+    + inputCondition;
+  expect(result).toEqual(expected);
 });
 
 test('invalid field on create putItem definition', () => {
@@ -152,7 +168,9 @@ test('invalid field on create putItem definition', () => {
   const compiler = new Compiler(invaliddbSchema, dbDriver);
   compiler.mapDbTableToGraphqlMutation('bar');
   let result = compiler.getSDL()
-  expect(result).toEqual("type Mutation {\n  putItemBar(_debug: Boolean): Bar\n}");
+  let expected = "type Mutation {\n  putItemBar(_debug: Boolean): Bar\n}"
+    + inputCondition;
+  expect(result).toEqual(expected);
 });
 
 test('it should create a complete dbSchema definition', () => {
@@ -200,7 +218,9 @@ test('it should add a query definition', () => {
   let compiler = new Compiler(schema, dbDriver);
   compiler.add('Query', 'getFoo', 'Foo')
   let result = compiler.getSDL(false);
-  expect(result).toEqual("type Query {\n  getFoo: Foo\n}");
+  let expected = "type Query {\n  getFoo: Foo\n}"
+    + inputCondition;
+  expect(result).toEqual(expected);
 });
 
 test('it should add a mutation definition', () => {
@@ -208,5 +228,7 @@ test('it should add a mutation definition', () => {
   let compiler = new Compiler(schema, dbDriver);
   compiler.add('Mutation', 'putFoo', 'Foo', { bar: 'Boolean' });
   let result = compiler.getSDL(false);
-  expect(result).toEqual("type Mutation {\n  putFoo(bar: Boolean): Foo\n}");
+  let expected = "type Mutation {\n  putFoo(bar: Boolean): Foo\n}"
+    + inputCondition;
+  expect(result).toEqual(expected);
 });

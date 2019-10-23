@@ -95,6 +95,7 @@ class PostgreSQL {
     // Load items
     let query = this.db(tablename);
     (args) && this.addWhereFromArgs(tablename, query, args);
+    (args) && this.addWhereFromArgsWhere(query, args);
     (args) && this.addPaginationFromArgs(tablename, query, args);
     if (args._debug) console.log('db hit:', query.toSQL().sql, query.toSQL().bindings);
     const items = await query;
@@ -111,6 +112,7 @@ class PostgreSQL {
   async pageTotal(tablename, args) {
     const query = this.db(tablename);
     (args) && this.addWhereFromArgs(tablename, query, args);
+    (args) && this.addWhereFromArgsWhere(query, args);
     const result = await query.count();
     return parseInt(result[0].count, 10);
   }
@@ -126,6 +128,7 @@ class PostgreSQL {
     // Load item
     let query = this.db(tablename);
     (args) && this.addWhereFromArgs(tablename, query, args);
+    (args) && this.addWhereFromArgsWhere(query, args);
     if (args._debug) console.log('db hit:', query.toSQL().sql, query.toSQL().bindings);
     return await query.first();
   }
@@ -196,6 +199,22 @@ class PostgreSQL {
     for (let i = 0; i < conditions.length; i++) {
       this.convertConditionToWhereClause(query, conditions[i]);
     }
+  }
+
+  /**
+   * Load knex query with where condition
+   * 
+   * @param {Function} query 
+   * @param {Object} args 
+   */
+  addWhereFromArgsWhere(query, args) {
+
+    // Validate filter arguments
+    if (!args.where) return;
+
+    // Apply filters
+    const { sql, val } = args.where;
+    query.whereRaw(sql, val);
   }
 
   /**
@@ -270,6 +289,10 @@ class PostgreSQL {
     localArgs.filter[tablename] = [['#', columnname, tids.join(',')]];
     let originFilter = hasFilter ? args.filter[tablename] : [];
     localArgs.filter[tablename] = localArgs.filter[tablename].concat(originFilter);
+
+    // Is where set?
+    const hasWhere = args && args.where;
+    if (hasWhere) localArgs['where'] = args.where;
     
     // Load from cache
     const key = this.getCacheKey(tablename, 'page', ids, localArgs);
@@ -281,6 +304,7 @@ class PostgreSQL {
     // Load from database
     let query = this.db(tablename);
     this.addWhereFromArgs(tablename, query, localArgs);
+    this.addWhereFromArgsWhere(query, localArgs);
     if (args._debug) console.log('db hit:', key, query.toSQL().sql, query.toSQL().bindings);
     const results = await query;
     this.cache.set(key, results);

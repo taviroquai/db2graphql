@@ -111,6 +111,7 @@ class Mysql {
     // Load items
     let query = this.db(tablename);
     (args) && this.addWhereFromArgs(tablename, query, args);
+    (args) && this.addWhereFromArgsWhere(query, args);
     (args) && this.addPaginationFromArgs(tablename, query, args);
     if (args._debug) console.log('db hit:', query.toSQL().sql, query.toSQL().bindings);
     const items = await query;
@@ -127,6 +128,7 @@ class Mysql {
   async pageTotal(tablename, args) {
     const query = this.db(tablename);
     (args) && this.addWhereFromArgs(tablename, query, args);
+    (args) && this.addWhereFromArgsWhere(query, args);
     const totalResult = await query.count();
     let result = JSON.parse(JSON.stringify(totalResult));
     return parseInt(result[0]['count(*)'], 10);
@@ -143,6 +145,7 @@ class Mysql {
     // Load item
     let query = this.db(tablename);
     (args) && this.addWhereFromArgs(tablename, query, args);
+    (args) && this.addWhereFromArgsWhere(query, args);
     if (args._debug) console.log('db hit:', query.toSQL().sql, query.toSQL().bindings);
     return await query.first();
   }
@@ -159,11 +162,8 @@ class Mysql {
     let count = data[pk] ? await this.db(tablename).where(pk, data[pk]).count() : false;
     if (!count || parseInt(count[0].count, 10) === 0) {
       let query = this.db(tablename);
-      await query.insert(data);
-
-      // Mysql get last inserted ID
-      const lastIdresult = await this.query('SELECT LAST_INSERT_ID() as ' + pk);
-      result = [lastIdresult[0][pk]];
+      const lastIdresult = await query.insert(data, [pk]);
+      result = [lastIdresult[0]];
     } else {
       let query = this.db(tablename)
       query.where(pk, data[pk])
@@ -216,6 +216,22 @@ class Mysql {
     for (let i = 0; i < conditions.length; i++) {
       this.convertConditionToWhereClause(query, conditions[i]);
     }
+  }
+
+  /**
+   * Load knex query with where condition
+   * 
+   * @param {Function} query 
+   * @param {Object} args 
+   */
+  addWhereFromArgsWhere(query, args) {
+
+    // Validate filter arguments
+    if (!args.where) return;
+
+    // Apply filters
+    const { sql, val } = args.where;
+    query.whereRaw(sql, val);
   }
 
   /**
@@ -291,6 +307,10 @@ class Mysql {
     localArgs.filter[tablename] = [['#', columnname, tids.join(',')]];
     let originFilter = hasFilter ? args.filter[tablename] : [];
     localArgs.filter[tablename] = localArgs.filter[tablename].concat(originFilter);
+
+    // Is where set?
+    const hasWhere = args && args.where;
+    if (hasWhere) localArgs['where'] = args.where;
     
     // Load from cache
     const key = this.getCacheKey(tablename, 'page', ids, localArgs);
@@ -302,6 +322,7 @@ class Mysql {
     // Load from database
     let query = this.db(tablename);
     this.addWhereFromArgs(tablename, query, localArgs);
+    this.addWhereFromArgsWhere(query, localArgs);
     if (args._debug) console.log('db hit:', key, query.toSQL().sql, query.toSQL().bindings);
     const results = await query;
     this.cache.set(key, results);
