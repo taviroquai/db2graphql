@@ -58,8 +58,8 @@ const createAndSeed = async () => {
   for (let i = 0; i < max_users; i++) {
     let data = {};
     for (let j = 0; j < 15; j++) data[userFields[j]] = genString();
-    let id = await db('users').returning('id').insert(data)
-    users_ids.push(id[0]);
+    let ids = await db('users').insert(data, ['id']);
+    users_ids.push(ids[0]);
     console.log('user', i);
   }
 
@@ -67,8 +67,9 @@ const createAndSeed = async () => {
   for (let i = 0; i < max_categories; i++) {
     let data = {};
     for (let j = 0; j < 15; j++) data[categoryFields[j]] = genString();
-    let id = await db('categories').returning('id').insert(data)
-    categories_ids.push(id[0]);
+    let ids = await db('categories').insert(data, ['id'])
+    console.log(ids);
+    categories_ids.push(ids[0]);
     console.log('cat', i);
   }
 
@@ -79,8 +80,9 @@ const createAndSeed = async () => {
     for (let j = 0; j < 50; j++) data[postsFields[j]] = genString();
     data['user_id'] = uid;
     data['category_id'] = cid;
-    let id = await db('posts').returning('id').insert(data)
-    posts_ids.push(id[0]);
+    let ids = await db('posts').insert(data, ['id']);
+    posts_ids.push(ids[0]);
+    console.log(ids);
     uid = uid >= max_users ? 1 : uid+1;
     cid = cid >= max_categories ? 1 : cid+1;
     console.log('post', i);
@@ -96,14 +98,15 @@ const run = async () => {
     WHERE table_schema = ? AND table_name = ?
   `;
   let res = await db.raw(sql, ['public', 'posts']);
+  res = JSON.parse(JSON.stringify(res));
 
   // WARNING: It may take up to 3-4 hours to complete the seed of 1 million posts
-  if (res.rows.length && res.rows[0].count === '0') await createAndSeed();
+  if (res.length && res[0][0].total === 0) await createAndSeed();
 
   // Setup DB2Graphql
   const db2g = require('../src/db2g');
-  const api = new db2g(db);
-  await api.connect();
+  const api = new db2g('test', db);
+  await api.connect(connection.connection.database);
   api.withBuilder();
   const resolvers = api.getResolvers();
 

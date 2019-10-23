@@ -96,13 +96,14 @@ const run = async () => {
     WHERE table_schema = ? AND table_name = ?
   `;
   let res = await db.raw(sql, ['public', 'posts']);
+  console.log(res.rows);
 
   // WARNING: It may take up to 3-4 hours to complete the seed of 1 million posts
-  if (res.rows.length && res.rows[0].count === '0') await createAndSeed();
+  if (res.rows.length && res.rows[0].total === '0') await createAndSeed();
 
   // Setup DB2Graphql
   const db2g = require('../src/db2g');
-  const api = new db2g(db);
+  const api = new db2g('test', db);
   await api.connect();
   api.withBuilder();
   const resolvers = api.getResolvers();
