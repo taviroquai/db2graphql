@@ -20,7 +20,7 @@ class Compiler {
     this.dbDriver = dbDriver;
 
     // Hold schema
-    this.schema = {};
+    this.schema = { type: {}, input: {} };
 
     // Cache sdl
     this.sdl = '';
@@ -58,13 +58,13 @@ class Compiler {
    */
   mapDbTableToGraphqlType(tablename) {
     const field = utils.toCamelCase(tablename);
-    if (!this.schema[field]) this.schema[field] = {};
+    if (!this.schema.type[field]) this.schema.type[field] = {};
     
     // Add fields
     let columns = this.dbDriver.getTableColumnsFromSchema(tablename);
     columns.forEach(child => {
       try {
-        this.schema[field][child] = {
+        this.schema.type[field][child] = {
           name: child,
           type: this.dbDriver.mapDbColumnToGraphqlType(child, this.dbSchema[tablename][child]),
           params: {}
@@ -77,7 +77,7 @@ class Compiler {
       let column = this.dbSchema[tablename][c];
       if (column.__foreign) {
         let child = c + '_' + column.__foreign.tablename;
-        this.schema[field][child] = {
+        this.schema.type[field][child] = {
           name: child,
           type: utils.toCamelCase(column.__foreign.tablename),
           params: {}
@@ -88,7 +88,7 @@ class Compiler {
     // Add reverse relation
     this.dbSchema[tablename].__reverse.map(r => {
       let child = r.ftablename;
-      this.schema[field][child] = {
+      this.schema.type[field][child] = {
         name: child,
         type: 'Page' + utils.toCamelCase(child),
         params: {
@@ -102,7 +102,7 @@ class Compiler {
     });
 
     // Add pages
-    this.schema['Page' + field] = {
+    this.schema.type['Page' + field] = {
       total: {
         name: 'total',
         type: 'Int',
@@ -124,8 +124,8 @@ class Compiler {
   mapDbTableToGraphqlQuery(tablename) {
     const field = utils.toCamelCase(tablename);
     const params = { filter: 'String', pagination: 'String', where: 'Condition', _debug: 'Boolean', _cache: 'Boolean' };
-    if (!this.schema.Query) this.schema['Query'] = {};
-    this.schema.Query['getPage' + field] = {
+    if (!this.schema.type.Query) this.schema.type['Query'] = {};
+    this.schema.type.Query['getPage' + field] = {
       name: 'getPage' + field,
       type: 'Page' + field,
       params
@@ -144,12 +144,39 @@ class Compiler {
   mapDbTableToGraphqlFirstOf(tablename) {
     const field = utils.toCamelCase(tablename);
     const params = { filter: 'String', pagination: 'String', where: 'Condition', _debug: 'Boolean', _cache: 'Boolean' };
-    if (!this.schema.Query) this.schema['Query'] = {};
-    this.schema.Query['getFirst' + field] = {
+    if (!this.schema.type.Query) this.schema.type['Query'] = {};
+    this.schema.type.Query['getFirst' + field] = {
       name: 'getFirst' + field,
       type: field,
       params
     }
+  }
+
+  /**
+   * Generate input name from tablename
+   * 
+   * @param {String} tablename 
+   */
+  getInputName(tablename) {
+    const field = utils.toCamelCase(tablename);
+    const name = 'Input' + field;
+    return name;
+  }
+
+  /**
+   * Create a convenient input to be used in mutation
+   * 
+   * @param {String} tablename 
+   */
+  mapDbTableToGraphqlInput(tablename) {
+    const name = this.getInputName(tablename);
+    if (!this.schema.input[name]) this.schema.input[name] = {};
+    let columns = this.dbDriver.getTableColumnsFromSchema(tablename);
+    columns.forEach(col => {
+      try {
+        this.schema.input[name][col] = this.dbDriver.mapDbColumnToGraphqlType(col, this.dbSchema[tablename][col]);
+      } catch (err) {}
+    });
   }
 
   /**
@@ -160,15 +187,10 @@ class Compiler {
    */
   mapDbTableToGraphqlMutation(tablename) {
     const field = utils.toCamelCase(tablename)
-    if (!this.schema.Mutation) this.schema['Mutation'] = {};
-    let columns = this.dbDriver.getTableColumnsFromSchema(tablename);
-    let params = { _debug: 'Boolean' };
-    columns.forEach(col => {
-      try {
-        params[col] = this.dbDriver.mapDbColumnToGraphqlType(col, this.dbSchema[tablename][col]);
-      } catch (err) {}
-    });
-    this.schema.Mutation['putItem' + field] = {
+    if (!this.schema.type.Mutation) this.schema.type['Mutation'] = {};
+    let name = this.getInputName(tablename);
+    let params = { _debug: 'Boolean', input: name + '!' };
+    this.schema.type.Mutation['putItem' + field] = {
       name: 'putItem' + field,
       type: field,
       params
@@ -176,17 +198,29 @@ class Compiler {
   }
 
   /**
-   * Adds a Graphql query
+   * Adds a Graphql field in types
    * 
    * @param {String} field 
    */
-  add(type, field, returns, params) {
-    if (!this.schema[type]) this.schema[type] = {};
-    this.schema[type][field] = {
+  addType(type, field, returns, params) {
+    if (!this.schema.type[type]) this.schema.type[type] = {};
+    this.schema.type[type][field] = {
       name: field,
       type: returns,
       params
     };
+  }
+
+  /**
+   * Add input field
+   * 
+   * @param {String} input 
+   * @param {String} field 
+   * @param {String} subType 
+   */
+  addInput(input, field, subType) {
+    if (!this.schema.input[input]) this.schema.input[input] = {};
+    this.schema.input[input][field] = subType;
   }
 
   /**
@@ -200,6 +234,7 @@ class Compiler {
       this.mapDbTableToGraphqlQuery(tablename);
       this.mapDbTableToGraphqlFirstOf(tablename);
       this.mapDbTableToGraphqlMutation(tablename);
+      this.mapDbTableToGraphqlInput(tablename);
     }
     return this.schema;
   }
@@ -213,15 +248,26 @@ class Compiler {
       this.sdl = '';
       let items = [];
 
-      for (let field in this.schema) {
+      // Build SDL types
+      for (let field in this.schema.type) {
         let subfields = [];
-        Object.keys(this.schema[field]).map(key => {
-          let f = this.schema[field][key];
+        Object.keys(this.schema.type[field]).map(key => {
+          let f = this.schema.type[field][key];
           let type = Array.isArray(f.type) ? '[' + f.type[0] + ']' : f.type;
           subfields.push("  " + f.name + this.buildParamsFromObject(f.params || {}) + ": " + type);
         });
         items.push("type " + field + " {\n" + subfields.join("\n") + "\n}");
       }
+
+      // Build SDL inputs
+      for (let field in this.schema.input) {
+        let subfields = [];
+        Object.keys(this.schema.input[field]).map(key => {
+          subfields.push("  " + key + ": " + this.schema.input[field][key]);
+        });
+        items.push("input " + field + " {\n" + subfields.join("\n") + "\n}");
+      }
+
       this.sdl = items.join("\n\n");
       
       // Add condition type

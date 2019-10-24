@@ -142,15 +142,15 @@ class PostgreSQL {
   async putItem(tablename, data) {
     const pk = this.getPrimaryKeyFromSchema(tablename);
     let result = null;
-    let count = data[pk] ? await this.db(tablename).where(pk, data[pk]).count() : false;
+    let count = data.input[pk] ? await this.db(tablename).where(pk, data.input[pk]).count() : false;
     if (!count || parseInt(count[0].count, 10) === 0) {
       let query = this.db(tablename);
       query.returning(pk)
-      result = await query.insert(data);
+      result = await query.insert(data.input);
     } else {
       let query = this.db(tablename)
-      query.where(pk, data[pk])
-      result = await query.update(data);
+      query.where(pk, data.input[pk])
+      result = await query.update(data.input);
     }
     return result;
   }

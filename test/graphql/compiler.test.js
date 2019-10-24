@@ -63,8 +63,8 @@ type Query {
 }
 
 type Mutation {
-  putItemBar(_debug: Boolean, foo_id: Int, id: Int): Bar
-  putItemFoo(_debug: Boolean, id: Int): Foo
+  putItemBar(_debug: Boolean, input: InputBar!): Bar
+  putItemFoo(_debug: Boolean, input: InputFoo!): Foo
 }
 
 type Foo {
@@ -75,6 +75,15 @@ type Foo {
 type PageFoo {
   total: Int
   items: [Foo]
+}
+
+input InputBar {
+  foo_id: Int
+  id: Int
+}
+
+input InputFoo {
+  id: Int
 }
 
 input Condition {
@@ -158,7 +167,7 @@ test('it should create a putItem definition for tablename', () => {
   const compiler = new Compiler(dbSchema, dbDriver);
   compiler.mapDbTableToGraphqlMutation('foo');
   let result = compiler.getSDL();
-  let expected = "type Mutation {\n  putItemFoo(_debug: Boolean, id: Int): Foo\n}"
+  let expected = "type Mutation {\n  putItemFoo(_debug: Boolean, input: InputFoo!): Foo\n}"
     + inputCondition;
   expect(result).toEqual(expected);
 });
@@ -168,7 +177,7 @@ test('invalid field on create putItem definition', () => {
   const compiler = new Compiler(invaliddbSchema, dbDriver);
   compiler.mapDbTableToGraphqlMutation('bar');
   let result = compiler.getSDL()
-  let expected = "type Mutation {\n  putItemBar(_debug: Boolean): Bar\n}"
+  let expected = "type Mutation {\n  putItemBar(_debug: Boolean, input: InputBar!): Bar\n}"
     + inputCondition;
   expect(result).toEqual(expected);
 });
@@ -216,7 +225,7 @@ test('it should build a query definition', () => {
 test('it should add a query definition', () => {
   let dbDriver = new PostgreSQL(db, schema);
   let compiler = new Compiler(schema, dbDriver);
-  compiler.add('Query', 'getFoo', 'Foo')
+  compiler.addType('Query', 'getFoo', 'Foo')
   let result = compiler.getSDL(false);
   let expected = "type Query {\n  getFoo: Foo\n}"
     + inputCondition;
@@ -226,7 +235,7 @@ test('it should add a query definition', () => {
 test('it should add a mutation definition', () => {
   let dbDriver = new PostgreSQL(db, schema);
   let compiler = new Compiler(schema, dbDriver);
-  compiler.add('Mutation', 'putFoo', 'Foo', { bar: 'Boolean' });
+  compiler.addType('Mutation', 'putFoo', 'Foo', { bar: 'Boolean' });
   let result = compiler.getSDL(false);
   let expected = "type Mutation {\n  putFoo(bar: Boolean): Foo\n}"
     + inputCondition;

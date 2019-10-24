@@ -159,15 +159,15 @@ class Mysql {
   async putItem(tablename, data) {
     const pk = this.getPrimaryKeyFromSchema(tablename);
     let result = null;
-    let count = data[pk] ? await this.db(tablename).where(pk, data[pk]).count() : false;
-    if (!count || parseInt(count[0].count, 10) === 0) {
+    let count = data.input[pk] ? await this.db(tablename).where(pk, data.input[pk]).count() : false;
+    if (!count || parseInt(count[0]['count(*)'], 10) === 0) {
       let query = this.db(tablename);
-      const lastIdresult = await query.insert(data, [pk]);
+      const lastIdresult = await query.insert(data.input, [pk]);
       result = [lastIdresult[0]];
     } else {
       let query = this.db(tablename)
-      query.where(pk, data[pk])
-      result = await query.update(data);
+      query.where(pk, data.input[pk])
+      result = await query.update(data.input);
     }
     return result;
   }

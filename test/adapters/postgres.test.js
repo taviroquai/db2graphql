@@ -256,10 +256,10 @@ describe('Postgres Driver', () => {
     });
     
     const adapter = new PostgreSQL(db, schema);
-    let result = await adapter.putItem('foo', { bar: true });
+    let result = await adapter.putItem('foo', { input: { bar: true }});
     expect(Array.isArray(result)).toBe(true);
     expect(result.length).toBe(1);
-    result = await adapter.putItem('foo', { id: result[0], bar: true });
+    result = await adapter.putItem('foo', { input: { id: result[0], bar: true }});
     expect(typeof result).toBe("number");
     
     // Close connection

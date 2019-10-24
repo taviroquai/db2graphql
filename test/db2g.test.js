@@ -94,7 +94,11 @@ type PageFoo {
 }
 
 type Mutation {
-  putItemFoo(_debug: Boolean, bar: Int): Foo
+  putItemFoo(_debug: Boolean, input: InputFoo!): Foo
+}
+
+input InputFoo {
+  bar: Int
 }
 
 input Condition {
@@ -282,11 +286,29 @@ input Condition {
     done();
   });
 
+  test('it should add a graphql input', async (done) => {
+    const api = new db2g();
+    api.addInput('InputFoo.bar', 'Foo');
+    api.addInput('InputFoo.foo', 'Bar');
+    let result = api.getSchema();
+    let expected = "input InputFoo {\n  bar: Foo\n  foo: Bar\n}"
+      + inputCondition;
+    expect(result).toEqual(expected);
+    done();
+  });
+
   test('it should throw exception on adding invalid field path', () => {
     const api = new db2g();
     expect(() => {
       api.addField("Query.", 'Foo', (root, args, context) => {});
     }).toThrow(new Error('addField path must be in format Type.field'));
+  });
+
+  test('it should throw exception on adding invalid input path', () => {
+    const api = new db2g();
+    expect(() => {
+      api.addInput("Input.", 'Foo', (root, args, context) => {});
+    }).toThrow(new Error('addInput path must be in format Input.field'));
   });
 
   test('it should add a graphql field by path', async (done) => {

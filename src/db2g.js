@@ -75,8 +75,8 @@ class DB2Graphql {
   }
 
   /**
-   * Adds a Graphql query to the schema.
-   * If type does not exists, it gets created.
+   * Adds a Graphql type field to the schema.
+   * If the field does not exists, it gets created.
    * 
    * <p>Usage example:</p>
    * 
@@ -94,8 +94,33 @@ class DB2Graphql {
    * @returns {DB2Graphql}        The self instance for fluent interface 
    */
   add(type, field, returns, resolver, params = {}) {
-    this.compiler.add(type, field, returns, params);
+    this.compiler.addType(type, field, returns, params);
     this.resolver.add(type, field, resolver);
+    return this;
+  }
+
+  /**
+   * Adds a Graphql input field to the schema.
+   * If the field does not exists, it gets created.
+   * 
+   * <p>Usage example:</p>
+   * 
+   * <pre>
+   * addInput('InputUsers.username', 'String')
+   * </pre>
+   * 
+   * @access public
+   * @param {String} path           The input type name and field name ie. InputUsers.username
+   * @param {String|Array} subType  The Graphql returning type ie. Boolean or 'String'
+   * 
+   * @returns {DB2Graphql}        The self instance for fluent interface 
+   */
+  addInput(path, subType) {
+    let segments = path.trim().split('.').filter(i => !!i);
+    if (segments.length < 2) throw new Error('addInput path must be in format Input.field');
+    let field = segments.pop();
+    let type = segments.pop();
+    this.compiler.addInput(type, field, subType);
     return this;
   }
 
