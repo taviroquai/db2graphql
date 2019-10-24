@@ -162,7 +162,7 @@ class Mysql {
     let count = data.input[pk] ? await this.db(tablename).where(pk, data.input[pk]).count() : false;
     if (!count || parseInt(count[0]['count(*)'], 10) === 0) {
       let query = this.db(tablename);
-      const lastIdresult = await query.insert(data.input, [pk]);
+      const lastIdresult = await query.insert(data.input);
       result = [lastIdresult[0]];
     } else {
       let query = this.db(tablename)
