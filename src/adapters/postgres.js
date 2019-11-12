@@ -36,6 +36,7 @@ class PostgreSQL {
     this.db = db;
     this.dbSchema = dbSchema;
     this.cache = new LruCache({ max: 500, maxAge: 1000 * 60 * 60 * 5 });
+    this.schemaname = 'public';
   }
 
   /**
@@ -93,7 +94,8 @@ class PostgreSQL {
     }
 
     // Load items
-    let query = this.db(tablename);
+    let fullname = [this.schemaname, tablename].join('.');
+    let query = this.db(fullname);
     (args) && this.addWhereFromArgs(tablename, query, args);
     (args) && this.addWhereFromArgsWhere(query, args);
     (args) && this.addPaginationFromArgs(tablename, query, args);
@@ -110,7 +112,8 @@ class PostgreSQL {
    * @param {Object} args 
    */
   async pageTotal(tablename, args) {
-    const query = this.db(tablename);
+    let fullname = [this.schemaname, tablename].join('.');
+    const query = this.db(fullname);
     (args) && this.addWhereFromArgs(tablename, query, args);
     (args) && this.addWhereFromArgsWhere(query, args);
     const result = await query.count();
@@ -126,7 +129,8 @@ class PostgreSQL {
   async firstOf(tablename, args) {
 
     // Load item
-    let query = this.db(tablename);
+    let fullname = [this.schemaname, tablename].join('.');
+    let query = this.db(fullname);
     (args) && this.addWhereFromArgs(tablename, query, args);
     (args) && this.addWhereFromArgsWhere(query, args);
     if (args._debug) console.log('db hit:', query.toSQL().sql, query.toSQL().bindings);
@@ -142,13 +146,17 @@ class PostgreSQL {
   async putItem(tablename, data) {
     const pk = this.getPrimaryKeyFromSchema(tablename);
     let result = null;
-    let count = data.input[pk] ? await this.db(tablename).where(pk, data.input[pk]).count() : false;
+    let fullname = [this.schemaname, tablename].join('.');
+    let count = data.input[pk] ? 
+      await this.db(fullname).where(pk, data.input[pk]).count() 
+      : false;
+    
     if (!count || parseInt(count[0].count, 10) === 0) {
-      let query = this.db(tablename);
+      let query = this.db(fullname);
       query.returning(pk)
       result = await query.insert(data.input);
     } else {
-      let query = this.db(tablename)
+      let query = this.db(fullname)
       query.where(pk, data.input[pk])
       result = await query.update(data.input);
     }
@@ -165,6 +173,7 @@ class PostgreSQL {
     const column = condition[1];
     let op = condition[0];
     let value = condition[2];
+    //let fullname = [this.schemaname, column].join('.');
     switch(op) {
       case '~':
         op = 'ilike';
@@ -268,8 +277,9 @@ class PostgreSQL {
    * @param {Object} args 
    */
   getCacheKey(tablename, columnname, ids, args) {
+    let fullname = [this.schemaname, tablename].join('.');
     const filteredArgs = { filter: args.filter, pagination: args.pagination };
-    let key = tablename + columnname + ids.join(',') + JSON.stringify(filteredArgs);
+    let key = fullname + columnname + ids.join(',') + JSON.stringify(filteredArgs);
     return String(hash(key));
   }
 
@@ -302,7 +312,8 @@ class PostgreSQL {
     }
 
     // Load from database
-    let query = this.db(tablename);
+    let fullname = [this.schemaname, tablename].join('.');
+    let query = this.db(fullname);
     this.addWhereFromArgs(tablename, query, localArgs);
     this.addWhereFromArgsWhere(query, localArgs);
     if (args._debug) console.log('db hit:', key, query.toSQL().sql, query.toSQL().bindings);
@@ -475,6 +486,7 @@ class PostgreSQL {
   async getSchema(schemaname = 'public', exclude = []) {
 
     let dbSchema = {};
+    this.schemaname = schemaname;
     
     // Get tables
     let tables = await this.getTables(schemaname, exclude);
