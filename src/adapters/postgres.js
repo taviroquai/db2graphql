@@ -155,10 +155,12 @@ class PostgreSQL {
       let query = this.db(fullname);
       query.returning(pk)
       result = await query.insert(data.input);
+      if (data._debug) console.log('db insert:', query.toSQL().sql, query.toSQL().bindings);
     } else {
       let query = this.db(fullname)
       query.where(pk, data.input[pk])
       result = await query.update(data.input);
+      if (data._debug) console.log('db update:', query.toSQL().sql, query.toSQL().bindings);
     }
     return result;
   }

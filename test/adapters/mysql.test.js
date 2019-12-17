@@ -249,7 +249,7 @@ describe('Mysql Driver', () => {
     });
     
     const adapter = new Mysql(db, schema);
-    let result = await adapter.putItem('foo', { input: { bar: true }});
+    let result = await adapter.putItem('foo', { input: { bar: true }, _debug: true});
     expect(Array.isArray(result)).toBe(true);
     expect(result.length).toBe(1);
     result = await adapter.putItem('foo', { input: { id: result[0], bar: true }});

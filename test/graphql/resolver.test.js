@@ -92,10 +92,10 @@ test('it should store one item and return it', async (done) => {
   }
   const dbDriver = new MockDriver();
   const resolver = new Resolver(dbDriver);
-  let result = await resolver.putItem('foo', null, {});
+  let result = await resolver.putItem('foo', null, { input: {}});
   let expected = {id:1};
   expect(result).toEqual(expected);
-  result = await resolver.putItem('foo', null, {id:1});
+  result = await resolver.putItem('foo', null, { input: {id:1}});
   expected = {id:1};
   expect(result).toEqual(expected);
   done();
@@ -288,6 +288,6 @@ test('it should add default table resolvers', async (done) => {
   expect(typeof resolvers.Mutation.putItemFoo).toBe('function');
   await resolvers.Query.getPageFoo();
   await resolvers.Query.getFirstFoo();
-  await resolvers.Mutation.putItemFoo();
+  await resolvers.Mutation.putItemFoo(null, { input: {}, _debug: true });
   done();
 });

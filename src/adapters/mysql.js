@@ -164,10 +164,12 @@ class Mysql {
       let query = this.db(tablename);
       const lastIdresult = await query.insert(data.input);
       result = [lastIdresult[0]];
+      if (data._debug) console.log('db insert:', query.toSQL().sql, query.toSQL().bindings);
     } else {
       let query = this.db(tablename)
       query.where(pk, data.input[pk])
       result = await query.update(data.input);
+      if (data._debug) console.log('db update:', query.toSQL().sql, query.toSQL().bindings);
     }
     return result;
   }

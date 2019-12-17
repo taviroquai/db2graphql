@@ -71,16 +71,14 @@ class Resolver {
    */
   async putItem(tablename, parent, data, context) {
     const pk = this.dbDriver.getPrimaryKeyFromSchema(tablename);
-
-    // Filter data
-    delete data['_debug'];
+    let id = data.input[pk];
 
     // Store item
     const result = await this.dbDriver.putItem(tablename, data);
-    if (!data[pk]) data[pk] = result[0];
+    if (!id) id = result[0];
 
     // Retrieve updated item
-    const args = { filter: { [tablename]: [['=', pk, data[pk]]] }};
+    const args = { filter: { [tablename]: [['=', pk, id]] }};
     return await this.dbDriver.firstOf(tablename, args);
   }
 
