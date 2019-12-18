@@ -14,11 +14,12 @@ describe('Postgres Driver', () => {
     expect(adapter instanceof PostgreSQL).toBe(true);
   });
 
-  test('translate database data type tp graphql native type', () => {
+  test('translate database data type to graphql native type', () => {
     const adapter = new PostgreSQL();
     const columns = [
       { data_type: 'boolean', toBe: 'Boolean' },
       { data_type: 'numeric', toBe: 'Float' },
+      { data_type: 'double precision', toBe: 'Float' },
       { data_type: 'integer', toBe: 'Int' },
       { data_type: 'bigint', toBe: 'Int' },
       { data_type: 'timestamp with time zone', toBe: 'String' },

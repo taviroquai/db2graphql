@@ -59,6 +59,7 @@ class PostgreSQL {
         graphqlType = 'Boolean';
         break;
       case 'numeric':
+      case 'double precision':
         graphqlType = 'Float';
         break;
       case 'integer':
