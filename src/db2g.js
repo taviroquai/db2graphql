@@ -157,7 +157,7 @@ class DB2Graphql {
    * 
    * @returns {Promise}                 The self instance for fluent interface
    */
-  async connect(namespace = 'public') {
+  async connect(namespace = '') {
     if (!this.connection) throw new Error('Invalid Knex instance');
 
     const config = this.connection.connection().client.config;
@@ -165,6 +165,9 @@ class DB2Graphql {
     if (!this.drivers[drivername]) {
       throw new Error('Database driver not available');
     }
+
+    config.connection = config.connection || {};
+    namespace = namespace || config.connection.database || 'public';
 
     this.dbDriver = new this.drivers[drivername](this.connection);
     this.dbSchema = await this.dbDriver.getSchema(namespace, config.exclude);
