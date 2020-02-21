@@ -239,6 +239,15 @@ api.connect().then(() => {
 });
 ```
 
+### Connect to Mysql database, please supply database name in connect method
+```js
+api.connect('database_name').then(() => {
+  const schema = api.getSchema();
+  console.log(schema);
+  conn.destroy();
+});
+```
+
 **Example of file connection.json**
 ```json
 {
