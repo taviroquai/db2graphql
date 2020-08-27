@@ -159,8 +159,13 @@ class Mysql {
   async putItem(tablename, data) {
     const pk = this.getPrimaryKeyFromSchema(tablename);
     let result = null;
-    let count = data.input[pk] ? await this.db(tablename).where(pk, data.input[pk]).count() : false;
-    if (!count || parseInt(count[0]['count(*)'], 10) === 0) {
+
+    // Check exists
+    let count = [{"count(*)": "0"}];
+    if (data.input[pk]) count = await this.db(tablename).where(pk, data.input[pk]).count();
+
+    // Insert or update
+    if (parseInt(count[0]['count(*)'], 10) === 0) {
       let query = this.db(tablename);
       const lastIdresult = await query.insert(data.input);
       result = [lastIdresult[0]];
@@ -291,44 +296,6 @@ class Mysql {
     const filteredArgs = { filter: args.filter, pagination: args.pagination };
     let key = tablename + columnname + ids.join(',') + JSON.stringify(filteredArgs);
     return String(hash(key));
-  }
-
-  /**
-   * Load items where ids
-   * 
-   * @param {String} tablename 
-   * @param {String} columnname
-   * @param {String} ids
-   * @param {String} args 
-   * @param {Object} cache 
-   */
-  async loadItemsIn(tablename, columnname, ids, args) {
-    let tids = ids.filter(i => i);
-    const hasFilter = args && args.filter && args.filter[tablename];
-    let localArgs = { filter: {}, pagination: {} };
-    localArgs.filter[tablename] = [['#', columnname, tids.join(',')]];
-    let originFilter = hasFilter ? args.filter[tablename] : [];
-    localArgs.filter[tablename] = localArgs.filter[tablename].concat(originFilter);
-
-    // Is where set?
-    const hasWhere = args && args.where;
-    if (hasWhere) localArgs['where'] = args.where;
-    
-    // Load from cache
-    const key = this.getCacheKey(tablename, 'page', ids, localArgs);
-    if (args._cache !== false && this.cache.peek(key)) {
-      if (args._debug) console.log('cache hit:', key);
-      return this.cache.get(key);
-    }
-
-    // Load from database
-    let query = this.db(tablename);
-    this.addWhereFromArgs(tablename, query, localArgs);
-    this.addWhereFromArgsWhere(query, localArgs);
-    if (args._debug) console.log('db hit:', key, query.toSQL().sql, query.toSQL().bindings);
-    const results = await query;
-    this.cache.set(key, results);
-    return results;
   }
 
   /**

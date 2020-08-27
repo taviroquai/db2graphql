@@ -32,12 +32,12 @@
     "apollo-server": "^2.9.4",
     "coveralls": "^3.0.6",
     "graphql": "^14.5.8",
-    "handlebars": ">=4.0.14",
-    "jest": "^23.6.0",
+    "handlebars": "^4.7.6",
+    "jest": "^26.4.2",
     "jsdoc": "^3.6.3",
     "knex": "^0.19.4",
     "mysql": "^2.17.1",
-    "nodemon": "^1.19.3",
+    "nodemon": "^2.0.4",
     "pg": "^7.12.1"
   },
   "jest": {

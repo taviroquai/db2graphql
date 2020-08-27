@@ -58,7 +58,8 @@ class Resolver {
    */
   async getFirstOf(tablename, parent, args, context) {
     args = this.parseArgsCommon(tablename, args);
-    return await this.dbDriver.firstOf(tablename, args)
+    let item = await this.dbDriver.firstOf(tablename, args);
+    return item;
   }
 
   /**
@@ -174,10 +175,8 @@ class Resolver {
         if (!this.resolvers[queryName]) this.resolvers[queryName] = {};
         this.resolvers[queryName][field] = async (item, args, context) => {
           if (!item[column.name]) return null;
-          args = this.parseArgsCommon(field, args);
-          const ids = [item[column.name]];
-          const related = await this.dbDriver.loadItemsIn(ftablename, fcolumnname, ids, args);
-          return related.length ? related[0] : null;
+          args['filter'] = (args.filter ? args.filter + ';' : '') + fcolumnname + '#' + item[fcolumnname];
+          return await this.getFirstOf(ftablename, item, args, context);
         }
       }
     });
@@ -196,10 +195,8 @@ class Resolver {
       const fcolumnname = r.fcolumnname;
       if (!this.resolvers[queryName]) this.resolvers[queryName] = {};
       this.resolvers[queryName][field] = async (item, args, context) => {
-        args = this.parseArgsCommon(field, args);
-        const related = await this.dbDriver.loadItemsIn(field, fcolumnname, [item[r.columnname]], args);
-        const result = { total: related.length, items: related };
-        return result;
+        args['filter'] = (args.filter ? args.filter + ';' : '') + fcolumnname + '#' + item[r.columnname];
+        return await this.getPage(field, item, args, context);
       }
     });
   }
