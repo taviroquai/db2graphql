@@ -25,20 +25,20 @@
   "author": "Marco Afonso",
   "license": "MIT",
   "dependencies": {
-    "lru-cache": "^5.1.1",
+    "lru-cache": "^6.0.0",
     "string-hash-64": "^1.0.3"
   },
   "devDependencies": {
     "apollo-server": "^2.18.2",
     "coveralls": "^3.1.0",
-    "graphql": "^14.7.0",
+    "graphql": "^15.3.0",
     "handlebars": "^4.7.6",
     "jest": "^26.6.1",
     "jsdoc": "^3.6.6",
-    "knex": "^0.19.4",
+    "knex": "^0.21.7",
     "mysql": "^2.18.1",
     "nodemon": "^2.0.6",
-    "pg": "^7.18.2"
+    "pg": "^8.4.1"
   },
   "jest": {
     "coveragePathIgnorePatterns": [
