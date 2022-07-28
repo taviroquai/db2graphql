@@ -9,7 +9,7 @@ Logo by [@Caneco](https://twitter.com/Caneco)
 Generates a Graphql schema and resolvers from an existing relational database
 
 [![NPM Version Badge](https://img.shields.io/npm/v/db2graphql.svg)](https://www.npmjs.com/package/db2graphql)
-[![Build Status Badge](https://travis-ci.org/taviroquai/db2graphql.svg?branch=master)](https://travis-ci.org/taviroquai/db2graphql)
+[![Build Status Badge](https://api.travis-ci.com/taviroquai/db2graphql.svg?branch=master)](https://app.travis-ci.com/github/taviroquai/db2graphql)
 [![Coverage Status Badge](https://coveralls.io/repos/github/taviroquai/db2graphql/badge.svg?branch=master)](https://coveralls.io/github/taviroquai/db2graphql?branch=master)
 ![Dependencies Badge](https://img.shields.io/david/taviroquai/db2graphql.svg?style=flat)
 ![Module Size Badge](https://img.shields.io/bundlephobia/min/db2graphql.svg?style=flat)
@@ -17,7 +17,7 @@ Generates a Graphql schema and resolvers from an existing relational database
 
 ## Features
 * Fully compatible with **express**, **koa**, **hapi** and **Apollo Server**
-* Converts an existing relational database (only PostgreSQL and MySQL for now) schema to a JSON schema
+* Converts an existing relational database (only PostgreSQL, MySQL and MSSql for now) schema to a JSON schema
 * Generates a Graphql SDL schema with convenient types, queries and mutations
 * Implements a generic Graphql resolver ready for API prototyping
 * Load related records based on foreign keys
@@ -55,7 +55,7 @@ query {
 ```
 
 ## Limitations/TODO
-* Only PostgreSQL and MySQL supported
+* Only PostgreSQL, MySQLand MSSql supported
 * Better database types handling
 * Better database queries optimization
 * ~~Create tests~~
