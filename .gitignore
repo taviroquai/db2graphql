@@ -1,6 +1,7 @@
 # Ignore local configuration
 demo/connection.json
 demo_mysql/connection.json
+demo_mssql/connection.json
 
 # Logs
 logs

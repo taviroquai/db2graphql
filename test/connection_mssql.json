@@ -1,0 +1,15 @@
+{
+  "client": "mssql",
+  "debug": true,
+  "connection": {
+    "host": "localhost",
+    "user": "db2graphql",
+    "password": "",
+    "database": "db2graphql_test",
+    "trustServerCertificate": true,
+    "dialectOptions": {
+      "instanceName": "SQLEXPRESS"
+    }
+  },
+  "exclude": []
+}

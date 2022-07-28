@@ -1,5 +1,6 @@
 const PostgreSQL = require('../src/adapters/postgres');
 const Mysql = require('../src/adapters/mysql');
+const MSSql = require('../src/adapters/mssql');
 const Compiler = require('../src/graphql/compiler');
 const Resolver = require('../src/graphql/resolver');
 
@@ -32,7 +33,8 @@ class DB2Graphql {
   constructor(name = '', db = null) {
     this.drivers = {
       pg: PostgreSQL,
-      mysql: Mysql
+      mysql: Mysql,
+      mssql: MSSql
     }
     this.connection = db;
     this.dbSchema = null;
