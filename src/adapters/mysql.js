@@ -78,6 +78,7 @@ class Mysql {
       case 'bigint':
         graphqlType = 'Int';
         break;
+      case 'datetime':
       case 'timestamp with time zone':
       case 'varchar':
       case 'text':
