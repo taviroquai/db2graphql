@@ -347,9 +347,17 @@ Open browser on http://localhost:4000 and see your Graphql API ready!
 - Created by [Marco Afonso](https://twitter.com/AfonsoD3v)
 - Logo by [Caneco](https://twitter.com/caneco)
 
-## Collab
+## Contributions
 
-Anyone is free to collab :)
+Anyone is free to contribute!  
+If you need an easy-to-use environment, please run the following docker containers:
+```
+docker run --cap-add SYS_PTRACE -e 'ACCEPT_EULA=1' -e 'MSSQL_SA_PASSWORD=test' -p 1433:1433 --name azuresqledge -d mcr.microsoft.com/azure-sql-edge
+docker run --platform=linux/amd64 --name some-mysql -p 3306:3306 -e MYSQL_ROOT_PASSWORD= -d mysql:5.7
+docker run --name some-postgres -p 5432:5432 -e POSTGRES_PASSWORD= -d postgres:10.6
+```
+
+Please consider the azure-sql-edge container is because M1 Macs are not supported by the official mssql container.
 
 ## License
 MIT, what else?
