@@ -48,7 +48,7 @@ describe('Postgres Driver', () => {
     await adapter.convertConditionToWhereClause(query, ['~', 'id', 'text']);
     await adapter.convertConditionToWhereClause(query, ['#', 'id', 'text']);
     await adapter.convertConditionToWhereClause(query, ['<=>', 'id', 1]);
-    
+
     // Close connection
     db.destroy(() => {
       done();
@@ -77,7 +77,7 @@ describe('Postgres Driver', () => {
     await adapter.addWhereFromArgs('foo', query, argsEmpty);
     result = query.toSQL();
     expect(/where/i.test(result.sql)).toBe(false);
-    
+
     // Close connection
     db.destroy(() => {
       done();
@@ -100,7 +100,7 @@ describe('Postgres Driver', () => {
     expect(/where/i.test(result.sql)).toBe(true);
     expect(/id\s=\s\?/i.test(result.sql)).toBe(true);
     expect(result.bindings[0]).toBe(val);
-    
+
     // Close connection
     await db.destroy();
     done();
@@ -132,7 +132,7 @@ describe('Postgres Driver', () => {
     expect(/limit/i.test(result.sql)).toBe(false);
     expect(/offset/i.test(result.sql)).toBe(false);
     expect(/order/i.test(result.sql)).toBe(false);
-    
+
     // Close connection
     db.destroy(() => {
       done();
@@ -146,7 +146,7 @@ describe('Postgres Driver', () => {
     expect(typeof result).toEqual('object');
     expect(typeof result.rowCount).toEqual('number');
     expect(Array.isArray(result.rows)).toBe(true);
-    
+
     // Close connection
     db.destroy(() => {
       done();
@@ -180,7 +180,7 @@ describe('Postgres Driver', () => {
     expect(Array.isArray(result)).toBe(true);
     result = await adapter.page('foo', { _debug: true });
     expect(Array.isArray(result)).toBe(true);
-    
+
     // Close connection
     db.destroy(() => {
       done();
@@ -188,7 +188,7 @@ describe('Postgres Driver', () => {
   });
 
   test('it should return a total of items', async (done) => {
-    
+
     // Fixtures
     const schema = { foo: [] };
     schema.foo.__pk = 'id';
@@ -204,7 +204,7 @@ describe('Postgres Driver', () => {
     const adapter = new PostgreSQL(db);
     const result = await adapter.pageTotal('foo', schema);
     expect(typeof result).toBe("number");
-    
+
     // Close connection
     db.destroy(() => {
       done();
@@ -235,7 +235,7 @@ describe('Postgres Driver', () => {
     expect(typeof result).toBe("object");
     result = await adapter.firstOf('foo', { _cache: true });
     expect(typeof result).toBe("object");
-    
+
     // Close connection
     db.destroy(() => {
       done();
@@ -243,7 +243,7 @@ describe('Postgres Driver', () => {
   });
 
   test('it should save one item and return it', async (done) => {
-    
+
     // Fixtures
     const schema = { foo: [] };
     schema.foo.__pk = 'id';
@@ -255,14 +255,14 @@ describe('Postgres Driver', () => {
       table.increments('id').primary();
       table.boolean('bar');
     });
-    
+
     const adapter = new PostgreSQL(db, schema);
     let result = await adapter.putItem('foo', { input: { bar: true }, _debug: true });
     expect(Array.isArray(result)).toBe(true);
     expect(result.length).toBe(1);
-    result = await adapter.putItem('foo', { input: { id: result[0], bar: true }});
+    result = await adapter.putItem('foo', { input: { id: result[0].id, bar: true } });
     expect(typeof result).toBe("number");
-    
+
     // Close connection
     db.destroy(() => {
       done();
@@ -279,7 +279,7 @@ describe('Postgres Driver', () => {
     const adapter = new PostgreSQL();
 
     // Mock adapter query
-    adapter.query = async () => { return { rows: []} };
+    adapter.query = async () => { return { rows: [] } };
     const result = await adapter.getTables();
     expect(result).toEqual([]);
     done();
@@ -296,7 +296,7 @@ describe('Postgres Driver', () => {
 
   test('it should return the table foreign keys', async (done) => {
     const adapter = new PostgreSQL();
-    const expected = [{ columnname: 'bar', ftableschema: 'public', ftablename: 'bar', fcolumnname: 'foo'}];
+    const expected = [{ columnname: 'bar', ftableschema: 'public', ftablename: 'bar', fcolumnname: 'foo' }];
     adapter.query = async () => ({ rows: expected });
     const result = await adapter.getForeignKeys();
     expect(result).toEqual(expected);
@@ -316,7 +316,7 @@ describe('Postgres Driver', () => {
     const adapter = new PostgreSQL();
 
     // Mock adapter query
-    adapter.query = async () => { return { rows: []} };
+    adapter.query = async () => { return { rows: [] } };
     let result = await adapter.getPrimaryKey();
     expect(result).toEqual(null);
     done();
@@ -415,7 +415,7 @@ describe('Postgres Driver', () => {
     const adapter = new PostgreSQL(db);
     const result = await adapter.getSchema();
     expect(result).toEqual(expected);
-    
+
     // Close connection
     db.destroy(() => {
       done();
@@ -423,7 +423,7 @@ describe('Postgres Driver', () => {
   });
 
   test('it should return the complete database schema as json without excluded items', async (done) => {
-    
+
     // Fixtures
     const expected = {
       "bar": {
@@ -451,7 +451,7 @@ describe('Postgres Driver', () => {
     const adapter = new PostgreSQL(db);
     const result = await adapter.getSchema('public', ['foo']);
     expect(result).toEqual(expected);
-    
+
     // Close connection
     db.destroy(() => {
       done();
