@@ -2,44 +2,43 @@ const utils = require('../utils/utils');
 
 /**
  * Graphql resolver
- * 
+ *
  * By using a database schema and driver,
  * implements a convenient API
  * to retrieve database records
  * for the most common operations
- * 
+ *
  * It is not intended to perform exotic
  * database queries. For that case,
  * the user is able to override the resolvers API
  * using on() method.
  */
 class Resolver {
-
   /**
    * Creates a new Resolver instance
-   * 
-   * @param {Function} dbDriver 
+   *
+   * @param {Function} dbDriver
    */
   constructor(dbDriver) {
     this.dbDriver = dbDriver;
 
     // Holds resolvers object
-    this.resolvers = {}
+    this.resolvers = {};
 
     // Default before hook
     this.beforeHook = {
       validator: async () => true,
       rejected: async () => null
-    }
+    };
   }
 
   /**
    * API: getPage
    * Convenient method to retrieve
    * a page of records
-   * 
-   * @param {String} tablename 
-   * @param {Object} args 
+   *
+   * @param {String} tablename
+   * @param {Object} args
    */
   async getPage(tablename, parent, args, context) {
     args = this.parseArgsCommon(tablename, args);
@@ -52,9 +51,9 @@ class Resolver {
    * API: getFirstOf
    * Convinient method to retrieve
    * only one record
-   * 
-   * @param {String} tablename 
-   * @param {Object} args 
+   *
+   * @param {String} tablename
+   * @param {Object} args
    */
   async getFirstOf(tablename, parent, args, context) {
     args = this.parseArgsCommon(tablename, args);
@@ -66,8 +65,8 @@ class Resolver {
    * API: putItem
    * Convenient method to insert/update
    * a single record onto the database
-   * 
-   * @param {String} tablename 
+   *
+   * @param {String} tablename
    * @param {Object} data
    */
   async putItem(tablename, parent, data, context) {
@@ -79,7 +78,7 @@ class Resolver {
     if (!id) id = result[0];
 
     // Retrieve updated item
-    const args = { filter: { [tablename]: [['=', pk, id]] }};
+    const args = { filter: { [tablename]: [['=', pk, id]] } };
     return await this.dbDriver.firstOf(tablename, args);
   }
 
@@ -90,20 +89,20 @@ class Resolver {
    * a set of conditions.
    * It's up to the database driver to interprete
    * these conditions.
-   * 
-   * @param {String} filterExpr 
+   *
+   * @param {String} filterExpr
    */
   parseFilterExpression(filterExpr, tablename) {
     const filter = {};
     const where = filterExpr;
     filter[tablename.trim()] = [];
-    where.split(';').map(f1 => {
-      let op = /\<\=\>|>=|<=|=|>|<|~|\#/.exec(f1);
+    where.split(';').map((f1) => {
+      let op = /<=>|>=|<=|=|>|<|~|#/.exec(f1);
       if (!op) throw new Error('Filter operation not suported in: ' + f1);
       op = op[0].trim();
       let condition = f1.split(op);
       condition.unshift(op);
-      condition = condition.map(c => c.trim())
+      condition = condition.map((c) => c.trim());
       filter[tablename].push(condition);
     });
     return filter;
@@ -111,16 +110,16 @@ class Resolver {
 
   /**
    * Parse pagination expression
-   * 
-   * @param {String} expression 
+   *
+   * @param {String} expression
    */
   parsePaginationExpression(expression, tablename) {
     const pagination = {};
     const pagExpr = String(expression);
     pagination[tablename.trim()] = [];
-    pagExpr.split(';').map(f1 => {
+    pagExpr.split(';').map((f1) => {
       let params = f1.split('=');
-      params = params.map(p => p.trim())
+      params = params.map((p) => p.trim());
       pagination[tablename].push(params);
     });
     return pagination;
@@ -128,45 +127,67 @@ class Resolver {
 
   /**
    * Parse args common
-   * 
+   *
    * @param {String} tablename
-   * @param {Object} args 
+   * @param {Object} args
    */
   parseArgsCommon(tablename, args) {
     let localArgs = Object.assign({}, args);
-    if (args.filter) localArgs.filter = this.parseFilterExpression(args.filter, tablename);
-    if (args.pagination) localArgs.pagination = this.parsePaginationExpression(args.pagination, tablename);
+    if (args.filter)
+      localArgs.filter = this.parseFilterExpression(args.filter, tablename);
+    if (args.pagination)
+      localArgs.pagination = this.parsePaginationExpression(
+        args.pagination,
+        tablename
+      );
     return localArgs;
   }
 
   /**
    * Adds a Graphql resolver
-   * 
-   * @param {String} namespace 
-   * @param {String} name 
-   * @param {Function} cb 
+   *
+   * @param {String} namespace
+   * @param {String} name
+   * @param {Function} cb
    */
   add(namespace, name, cb) {
     if (!this.resolvers[namespace]) this.resolvers[namespace] = {};
-    this.resolvers[namespace][name] = async (root = null, args = {}, context = {}) => {
+    this.resolvers[namespace][name] = async (
+      root = null,
+      args = {},
+      context = {}
+    ) => {
       const db = this.dbDriver ? this.dbDriver.db : null;
       context.ioc = { resolver: this, db };
-      const passBefore = await this.beforeHook.validator(namespace, name, root, args, context);
-      if (!passBefore) return await this.beforeHook.rejected(namespace, name, root, args, context);
+      const passBefore = await this.beforeHook.validator(
+        namespace,
+        name,
+        root,
+        args,
+        context
+      );
+      if (!passBefore)
+        return await this.beforeHook.rejected(
+          namespace,
+          name,
+          root,
+          args,
+          context
+        );
       return await cb(root, args, context);
-    }
+    };
   }
 
   /**
    * Create relation resolver for foreign key
-   * 
+   *
    * @todo Refactor to smaller complexity
-   * @param {String} tablename 
+   * @param {String} tablename
    */
   createForeignFieldsResolvers(tablename) {
     const queryName = utils.toCamelCase(tablename);
     const columns = this.dbDriver.getTableColumnsFromSchema(tablename);
-    columns.map(c => {
+    columns.map((c) => {
       const column = this.dbDriver.dbSchema[tablename][c];
       if (column.__foreign) {
         const field = c + '_' + column.__foreign.tablename;
@@ -175,36 +196,44 @@ class Resolver {
         if (!this.resolvers[queryName]) this.resolvers[queryName] = {};
         this.resolvers[queryName][field] = async (item, args, context) => {
           if (!item[column.name]) return null;
-          args['filter'] = (args.filter ? args.filter + ';' : '') + fcolumnname + '#' + item[column.name];
+          args['filter'] =
+            (args.filter ? args.filter + ';' : '') +
+            fcolumnname +
+            '#' +
+            item[column.name];
           return await this.getFirstOf(ftablename, item, args, context);
-        }
+        };
       }
     });
   }
 
   /**
    * Create inverse relation resolver
-   * 
+   *
    * @todo Refactor to smaller complexity
-   * @param {String} tablename 
+   * @param {String} tablename
    */
   createReverseRelationsResolvers(tablename) {
     const queryName = utils.toCamelCase(tablename);
-    this.dbDriver.dbSchema[tablename].__reverse.map(r => {
+    this.dbDriver.dbSchema[tablename].__reverse.map((r) => {
       let field = r.ftablename;
       const fcolumnname = r.fcolumnname;
       if (!this.resolvers[queryName]) this.resolvers[queryName] = {};
       this.resolvers[queryName][field] = async (item, args, context) => {
-        args['filter'] = (args.filter ? args.filter + ';' : '') + fcolumnname + '#' + item[r.columnname];
+        args['filter'] =
+          (args.filter ? args.filter + ';' : '') +
+          fcolumnname +
+          '#' +
+          item[r.columnname];
         return await this.getPage(field, item, args, context);
-      }
+      };
     });
   }
 
   /**
    * Add default API resolvers
-   * 
-   * @param {String} tablename 
+   *
+   * @param {String} tablename
    */
   addDefaultFieldsResolvers(tablename) {
     let typeName = utils.toCamelCase(tablename);
@@ -214,15 +243,19 @@ class Resolver {
     this.add('Query', 'getFirst' + typeName, async (parent, args, context) => {
       return this.getFirstOf(tablename, parent, args, context);
     });
-    this.add('Mutation', 'putItem' + typeName, async (parent, args, context) => {
-      return this.putItem(tablename, parent, args, context);
-    });
+    this.add(
+      'Mutation',
+      'putItem' + typeName,
+      async (parent, args, context) => {
+        return this.putItem(tablename, parent, args, context);
+      }
+    );
   }
 
   /**
    * Builds the Graphql resolvers object
    * by population with the current API methods
-   * 
+   *
    * @param {Boolean} withDatabase
    */
   getResolvers(withDatabase = true) {

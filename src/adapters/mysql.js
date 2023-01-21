@@ -33,11 +33,10 @@ const availableTypes = [
  * Mysql dialect adapter
  */
 class Mysql {
-
   /**
    * Create a new adapter instance
-   * 
-   * @param {Object} db 
+   *
+   * @param {Object} db
    */
   constructor(db, dbSchema = {}) {
     this.db = db;
@@ -54,13 +53,13 @@ class Mysql {
 
   /**
    * Get Graphql type from database column data type
-   * 
-   * @param {String} columnname 
-   * @param {Object} attrs 
+   *
+   * @param {String} columnname
+   * @param {Object} attrs
    */
   mapDbColumnToGraphqlType(columnname, attrs) {
     let graphqlType = '';
-    switch(attrs.data_type) {
+    switch (attrs.data_type) {
       case 'tinyint':
         graphqlType = 'Boolean';
         break;
@@ -89,19 +88,24 @@ class Mysql {
       case 'USER-DEFINED':
         graphqlType = 'String';
         break;
-      default: throw new Error('Undefined column type: ' + attrs.data_type + ' of column '+ columnname);
+      default:
+        throw new Error(
+          'Undefined column type: ' +
+            attrs.data_type +
+            ' of column ' +
+            columnname
+        );
     }
     return graphqlType;
   }
 
   /**
    * Get a page of the table
-   * 
-   * @param {String} tablename 
-   * @param {Object} args 
+   *
+   * @param {String} tablename
+   * @param {Object} args
    */
   async page(tablename, args) {
-
     // Load from cache
     const key = this.getCacheKey(tablename, 'page', [], args);
     if (args._cache !== false && this.cache.peek(key)) {
@@ -111,10 +115,11 @@ class Mysql {
 
     // Load items
     let query = this.db(tablename);
-    (args) && this.addWhereFromArgs(tablename, query, args);
-    (args) && this.addWhereFromArgsWhere(query, args);
-    (args) && this.addPaginationFromArgs(tablename, query, args);
-    if (args._debug) console.log('db hit:', query.toSQL().sql, query.toSQL().bindings);
+    args && this.addWhereFromArgs(tablename, query, args);
+    args && this.addWhereFromArgsWhere(query, args);
+    args && this.addPaginationFromArgs(tablename, query, args);
+    if (args._debug)
+      console.log('db hit:', query.toSQL().sql, query.toSQL().bindings);
     const items = await query;
     this.cache.set(key, items);
     return items;
@@ -122,14 +127,14 @@ class Mysql {
 
   /**
    * Get pagination total
-   * 
-   * @param {String} tablename 
-   * @param {Object} args 
+   *
+   * @param {String} tablename
+   * @param {Object} args
    */
   async pageTotal(tablename, args) {
     const query = this.db(tablename);
-    (args) && this.addWhereFromArgs(tablename, query, args);
-    (args) && this.addWhereFromArgsWhere(query, args);
+    args && this.addWhereFromArgs(tablename, query, args);
+    args && this.addWhereFromArgsWhere(query, args);
     const totalResult = await query.count();
     let result = JSON.parse(JSON.stringify(totalResult));
     return parseInt(result[0]['count(*)'], 10);
@@ -137,63 +142,66 @@ class Mysql {
 
   /**
    * Get one record
-   * 
-   * @param {String} tablename 
+   *
+   * @param {String} tablename
    * @param {Object} args
    */
   async firstOf(tablename, args) {
-
     // Load item
     let query = this.db(tablename);
-    (args) && this.addWhereFromArgs(tablename, query, args);
-    (args) && this.addWhereFromArgsWhere(query, args);
-    if (args._debug) console.log('db hit:', query.toSQL().sql, query.toSQL().bindings);
+    args && this.addWhereFromArgs(tablename, query, args);
+    args && this.addWhereFromArgsWhere(query, args);
+    if (args._debug)
+      console.log('db hit:', query.toSQL().sql, query.toSQL().bindings);
     return await query.first();
   }
 
   /**
    * Insert or update record
-   * 
-   * @param {String} tablename 
-   * @param {Object} data 
+   *
+   * @param {String} tablename
+   * @param {Object} data
    */
   async putItem(tablename, data) {
     const pk = this.getPrimaryKeyFromSchema(tablename);
     let result = null;
 
     // Check exists
-    let count = [{"count(*)": "0"}];
-    if (data.input[pk]) count = await this.db(tablename).where(pk, data.input[pk]).count();
+    let count = [{ 'count(*)': '0' }];
+    if (data.input[pk])
+      count = await this.db(tablename).where(pk, data.input[pk]).count();
 
     // Insert or update
     if (parseInt(count[0]['count(*)'], 10) === 0) {
       let query = this.db(tablename);
       const lastIdresult = await query.insert(data.input);
       result = [lastIdresult[0]];
-      if (data._debug) console.log('db insert:', query.toSQL().sql, query.toSQL().bindings);
+      if (data._debug)
+        console.log('db insert:', query.toSQL().sql, query.toSQL().bindings);
     } else {
-      let query = this.db(tablename)
-      query.where(pk, data.input[pk])
+      let query = this.db(tablename);
+      query.where(pk, data.input[pk]);
       result = await query.update(data.input);
-      if (data._debug) console.log('db update:', query.toSQL().sql, query.toSQL().bindings);
+      if (data._debug)
+        console.log('db update:', query.toSQL().sql, query.toSQL().bindings);
     }
     return result;
   }
 
   /**
    * Load knex query with condition
-   * 
-   * @param {Function} query 
-   * @param {Object} condition 
+   *
+   * @param {Function} query
+   * @param {Object} condition
    */
   convertConditionToWhereClause(query, condition) {
     const column = condition[1];
     let op = condition[0];
     let value = condition[2];
-    switch(op) {
+    switch (op) {
       case '~':
         op = 'ilike';
-        value = '%'+value.replace(' ', '%')+'%';
+        value = '%' + value.replace(' ', '%') + '%';
         query.where(column, 'ilike', value);
         break;
       case '#':
@@ -209,12 +217,11 @@ class Mysql {
 
   /**
    * Load knex query with all filters
-   * 
-   * @param {Function} query 
-   * @param {Object} args 
+   *
+   * @param {Function} query
+   * @param {Object} args
    */
   addWhereFromArgs(tablename, query, args) {
-
     // Validate filter arguments
     if (!args.filter) return;
     let conditions = args.filter[tablename];
@@ -228,12 +235,11 @@ class Mysql {
 
   /**
    * Load knex query with where condition
-   * 
-   * @param {Function} query 
-   * @param {Object} args 
+   *
+   * @param {Function} query
+   * @param {Object} args
    */
   addWhereFromArgsWhere(query, args) {
-
     // Validate filter arguments
     if (!args.where) return;
 
@@ -244,12 +250,11 @@ class Mysql {
 
   /**
    * Load knex query with all pagination
-   * 
-   * @param {Function} query 
-   * @param {Object} args 
+   *
+   * @param {Function} query
+   * @param {Object} args
    */
   addPaginationFromArgs(tablename, query, args) {
-
     // Validate pagination arguments
     if (!args.pagination) return;
     let pagination = args.pagination[tablename];
@@ -259,7 +264,7 @@ class Mysql {
     for (let i = 0; i < pagination.length; i++) {
       const op = pagination[i][0];
       let value = pagination[i][1];
-      switch(op) {
+      switch (op) {
         case 'limit':
           query.limit(value);
           break;
@@ -267,7 +272,7 @@ class Mysql {
           query.offset(value);
           break;
         case 'orderby':
-          value = value.split(' ')
+          value = value.split(' ');
           query.orderBy(value[0], value[1]);
           break;
       }
@@ -276,9 +281,9 @@ class Mysql {
 
   /**
    * Run a raw SQL query
-   * 
-   * @param {String} sql 
-   * @param {Object} params 
+   *
+   * @param {String} sql
+   * @param {Object} params
    */
   async query(sql, params) {
     let result = (await this.db.raw(sql, params))[0];
@@ -287,37 +292,38 @@ class Mysql {
 
   /**
    * Generate cache key
-   * 
-   * @param {String} tablename 
-   * @param {String} columnname 
-   * @param {Array} ids 
-   * @param {Object} args 
+   *
+   * @param {String} tablename
+   * @param {String} columnname
+   * @param {Array} ids
+   * @param {Object} args
    */
   getCacheKey(tablename, columnname, ids, args) {
     const filteredArgs = { filter: args.filter, pagination: args.pagination };
-    let key = tablename + columnname + ids.join(',') + JSON.stringify(filteredArgs);
+    let key =
+      tablename + columnname + ids.join(',') + JSON.stringify(filteredArgs);
     return String(hash(key));
   }
 
   /**
    * Get exclude SQL condition when loading
    * database table names
-   * 
-   * @param {Array} exclude 
+   *
+   * @param {Array} exclude
    */
   getExcludeCondition(exclude) {
     let sql = '';
     if (!exclude || exclude.length === 0) return sql;
-    const placeholders = exclude.map(v => '?').join(',');
+    const placeholders = exclude.map((v) => '?').join(',');
     sql += `AND table_name NOT IN (${placeholders})`;
     return sql;
   }
 
   /**
    * Get database tables
-   * 
-   * @param {String} schemaname 
-   * @param {Array} exclude 
+   *
+   * @param {String} schemaname
+   * @param {Array} exclude
    */
   async getTables(schemaname, exclude = []) {
     const tables = [];
@@ -335,15 +341,15 @@ class Mysql {
     for (let i = 0; i < rows.length; i++) {
       tables.push({ name: rows[i].name });
     }
-    return tables; 
+    return tables;
   }
 
   /**
    * Get table columns
    * and create an object representation
-   * 
-   * @param {String} schemaname 
-   * @param {String} tablename 
+   *
+   * @param {String} schemaname
+   * @param {String} tablename
    */
   async getColumns(schemaname, tablename) {
     const columns = [];
@@ -366,9 +372,9 @@ class Mysql {
   /**
    * Get foreign key constraints
    * for a database table
-   * 
-   * @param {String} schemaname 
-   * @param {String} tablename 
+   *
+   * @param {String} schemaname
+   * @param {String} tablename
    */
   async getForeignKeys(schemaname, tablename) {
     const fkeys = [];
@@ -390,7 +396,7 @@ class Mysql {
     `;
     let rows = await this.query(sql, [schemaname, tablename]);
     for (let j = 0; j < rows.length; j++) {
-      fkeys.push(rows[j]); 
+      fkeys.push(rows[j]);
     }
     return fkeys;
   }
@@ -398,9 +404,9 @@ class Mysql {
   /**
    * Get primary key constraint
    * for a database table
-   * 
-   * @param {String} schemaname 
-   * @param {String} tablename 
+   *
+   * @param {String} schemaname
+   * @param {String} tablename
    */
   async getPrimaryKey(schemaname, tablename) {
     let pk = null;
@@ -432,18 +438,20 @@ class Mysql {
   /**
    * Helper to get column names for a table
    * from current database schema
-   * 
-   * @param {String} tablename 
+   *
+   * @param {String} tablename
    */
   getTableColumnsFromSchema(tablename) {
-    return Object.keys(this.dbSchema[tablename]).filter(c => c !== '__reverse' && c !== '__pk');
+    return Object.keys(this.dbSchema[tablename]).filter(
+      (c) => c !== '__reverse' && c !== '__pk'
+    );
   }
 
   /**
    * Helper to get primary key for a table
    * from current database schema
-   * 
-   * @param {String} tablename 
+   *
+   * @param {String} tablename
    */
   getPrimaryKeyFromSchema(tablename) {
     return this.dbSchema[tablename].__pk;
@@ -452,14 +460,13 @@ class Mysql {
   /**
    * Build and return the database schema
    * Use exclude parameter to exclude indesired tables
-   * 
-   * @param {String} schemaname 
-   * @param {Array} exclude 
+   *
+   * @param {String} schemaname
+   * @param {Array} exclude
    */
   async getSchema(schemaname, exclude = []) {
-
     let dbSchema = {};
-    
+
     // Get tables
     let tables = await this.getTables(schemaname, exclude);
     for (let i = 0; i < tables.length; i++) {
@@ -473,7 +480,7 @@ class Mysql {
       // Get columns
       let columns = await this.getColumns(schemaname, tablename);
       for (let j = 0; j < columns.length; j++) {
-        let columnname = columns[j].name; 
+        let columnname = columns[j].name;
         dbSchema[tablename][columnname] = columns[j];
       }
     }
@@ -482,7 +489,6 @@ class Mysql {
     for (let tablename in dbSchema) {
       const fkeys = await this.getForeignKeys(schemaname, tablename);
       for (let j = 0; j < fkeys.length; j++) {
-
         // Assign foreign key definition to column
         dbSchema[tablename][fkeys[j].columnname]['__foreign'] = {
           schemaname: fkeys[j].ftableschema,
