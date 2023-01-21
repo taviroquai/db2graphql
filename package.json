@@ -25,6 +25,13 @@
     "api"
   ],
   "author": "Marco Afonso",
+  "contributors": [
+    {
+      "name": "Michael Di Prisco",
+      "email": "cadienvan@gmail.com",
+      "url": "https://github.com/Cadienvan"
+    }
+  ],
   "license": "MIT",
   "dependencies": {
     "lru-cache": "^6.0.0",
