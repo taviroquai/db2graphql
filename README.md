@@ -268,7 +268,8 @@ api.connect('database_name').then(() => {
 ```js
 const knex = require('knex');
 const db2g = require('db2graphql');
-const { ApolloServer, gql } = require('apollo-server');
+const { ApolloServer } = require('@apollo/server');
+const { startStandaloneServer } = require('@apollo/server/standalone');
 
 const start = async (cb) => {
 
@@ -302,10 +303,10 @@ const start = async (cb) => {
   if (!schema) throw new Error('Error: empty schema');
   console.log(schema);
   const server = new ApolloServer({
-    typeDefs: gql`${schema}`,
+    typeDefs: schema,
     resolvers,
   });
-  server.listen().then(({ url }) => {
+  startStandaloneServer(server).then(({ url }) => {
     console.log(`🚀 Server ready at ${url}`);
   });
 }
