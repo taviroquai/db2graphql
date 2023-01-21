@@ -31,16 +31,16 @@
     "string-hash-64": "^1.0.3"
   },
   "devDependencies": {
-    "apollo-server": "^3.10.0",
-    "coveralls": "^3.1.0",
-    "graphql": "^15.3.0",
-    "jest": "^26.6.1",
+    "@apollo/server": "^4.3.1",
+    "coveralls": "^3.1.1",
+    "graphql": "^16.0.0",
+    "jest": "^26.6.3",
     "jsdoc": "^3.6.11",
-    "knex": "^2.4.0",
-    "mssql": "^6.2.1",
+    "knex": "^2.4.1",
+    "mssql": "^6.4.1",
     "mysql": "^2.18.1",
-    "nodemon": "^2.0.6",
-    "pg": "^8.4.1"
+    "nodemon": "^2.0.20",
+    "pg": "^8.8.0"
   },
   "jest": {
     "coveragePathIgnorePatterns": [
