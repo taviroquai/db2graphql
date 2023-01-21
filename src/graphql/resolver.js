@@ -175,7 +175,7 @@ class Resolver {
         if (!this.resolvers[queryName]) this.resolvers[queryName] = {};
         this.resolvers[queryName][field] = async (item, args, context) => {
           if (!item[column.name]) return null;
-          args['filter'] = (args.filter ? args.filter + ';' : '') + fcolumnname + '#' + item[fcolumnname];
+          args['filter'] = (args.filter ? args.filter + ';' : '') + fcolumnname + '#' + item[column.name];
           return await this.getFirstOf(ftablename, item, args, context);
         }
       }
@@ -233,7 +233,7 @@ class Resolver {
       let tables = this.dbDriver.getTablesFromSchema();
       for (let i = 0; i < tables.length; i++) {
         let tablename = tables[i];
-        
+
         // Add default resolvers
         this.addDefaultFieldsResolvers(tablename);
 
