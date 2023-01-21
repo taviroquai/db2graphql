@@ -1,0 +1,18 @@
+{
+  "root": true,
+  "extends": ["eslint:recommended"],
+  "ignorePatterns": ["node_modules/", "dist/"],
+  "rules": {
+    "no-debugger": 2,
+    "no-var": 1,
+    "no-unused-vars": 1,
+    "no-empty": 1
+  },
+  "parserOptions": {
+    "ecmaVersion": "latest"
+  },
+
+  "env": {
+    "node": true
+  }
+}
